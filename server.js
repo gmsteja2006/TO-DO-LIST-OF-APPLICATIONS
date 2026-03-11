@@ -1,4 +1,4 @@
-// server.js - MERN To-Do App Backend with JWT Auth + Email alerts + Email OTP verification
+// server.js - Backend only
 
 require("dotenv").config();
 const express = require("express");
@@ -10,55 +10,50 @@ const nodemailer = require("nodemailer");
 
 const app = express();
 
-// ====== Middleware ======
 app.use(express.json());
-
-// Allow requests from any origin (for file:// or Live Server)
 app.use(
   cors({
-    origin: "*", // you can restrict later
+    origin: "*",
   })
 );
 
-// ====== MongoDB Connection (using .env MONGO_URI) ======
+// ====== MongoDB ======
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://127.0.0.1:27017/todo_jwt_db";
 
-const connectDB = async () => {
+async function connectDB() {
   try {
     const conn = await mongoose.connect(MONGO_URI);
     console.log("✅ MongoDB connected:", conn.connection.host);
     console.log("✅ Database:", conn.connection.name);
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error.message);
+  } catch (err) {
+    console.error("❌ MongoDB error:", err.message);
     process.exit(1);
   }
-};
-
+}
 connectDB();
 
-// ====== Nodemailer transporter (Gmail or other SMTP) ======
+// ====== Nodemailer ======
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.MAIL_USER, // your Gmail
-    pass: process.env.MAIL_PASS, // app password
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
 });
 
-transporter.verify((err, success) => {
-  if (err) console.error("❌ Mail server error:", err.message);
+transporter.verify((err) => {
+  if (err) console.error("❌ Mail error:", err.message);
   else console.log("✅ Mail server ready");
 });
 
-// ====== Mongoose Models ======
+// ====== Models ======
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   email: { type: String, unique: true, required: true },
   passwordHash: { type: String, required: true },
-  // OTP fields for email verification
-  otpCode: { type: String },
-  otpExpiresAt: { type: Date },
+  otpCode: String,
+  otpExpiresAt: Date,
   isVerified: { type: Boolean, default: false },
 });
 
@@ -69,7 +64,7 @@ const taskSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
     completed: { type: Boolean, default: false },
-    deadline: { type: Date },
+    deadline: Date,
     notified: { type: Boolean, default: false },
   },
   { timestamps: true }
@@ -77,9 +72,9 @@ const taskSchema = new mongoose.Schema(
 
 const Task = mongoose.model("Task", taskSchema);
 
-// ====== Helpers for OTP ======
+// ====== Helpers ======
 function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function sendOtpMail(toEmail, otp) {
@@ -92,13 +87,11 @@ async function sendOtpMail(toEmail, otp) {
   await transporter.sendMail(mailOptions);
 }
 
-// ====== JWT Auth Middleware ======
 function authMiddleware(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader)
     return res.status(401).json({ message: "No token provided" });
-
-  const token = authHeader.split(" ")[1]; // "Bearer <token>"
+  const token = authHeader.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Invalid token format" });
 
   try {
@@ -108,18 +101,15 @@ function authMiddleware(req, res, next) {
     );
     req.userId = decoded.id;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: "Token is not valid" });
   }
 }
 
 // ====== Auth Routes ======
-
-// POST /api/register  (now: creates user + sends OTP, does NOT auto-verify)
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
-
     if (!username || !email || !password)
       return res
         .status(400)
@@ -136,9 +126,9 @@ app.post("/api/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const otp = generateOtp();
-    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    const user = new User({
+    const user = await User.create({
       username,
       email,
       passwordHash,
@@ -146,13 +136,11 @@ app.post("/api/register", async (req, res) => {
       otpExpiresAt: expires,
       isVerified: false,
     });
-    await user.save();
 
     try {
       await sendOtpMail(email, otp);
-    } catch (mailErr) {
-      console.error("Error sending OTP email:", mailErr.message);
-      // optional: still keep user but inform frontend
+    } catch (err) {
+      console.error("Error sending OTP email:", err.message);
     }
 
     return res.status(201).json({
@@ -165,34 +153,28 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// POST /api/verify-otp
-app.post("/api/verify-otp", async (req, res) => {
+app.post("/api/verify-email", async (req, res) => {
   try {
     const { userId, otp } = req.body;
 
-    if (!userId || !otp) {
+    if (!userId || !otp)
       return res.status(400).json({ message: "User and OTP are required" });
-    }
 
     const user = await User.findById(userId);
     if (!user)
       return res.status(400).json({ message: "User not found" });
 
-    if (user.isVerified) {
+    if (user.isVerified)
       return res.status(400).json({ message: "Already verified" });
-    }
 
-    if (!user.otpCode || !user.otpExpiresAt) {
+    if (!user.otpCode || !user.otpExpiresAt)
       return res.status(400).json({ message: "No OTP found. Please resend." });
-    }
 
-    if (user.otpCode !== otp) {
+    if (user.otpCode !== otp)
       return res.status(400).json({ message: "Invalid OTP" });
-    }
 
-    if (user.otpExpiresAt < new Date()) {
+    if (user.otpExpiresAt < new Date())
       return res.status(400).json({ message: "OTP expired" });
-    }
 
     user.isVerified = true;
     user.otpCode = null;
@@ -206,7 +188,6 @@ app.post("/api/verify-otp", async (req, res) => {
   }
 });
 
-// POST /api/resend-otp
 app.post("/api/resend-otp", async (req, res) => {
   try {
     const { userId } = req.body;
@@ -217,9 +198,8 @@ app.post("/api/resend-otp", async (req, res) => {
     if (!user)
       return res.status(400).json({ message: "User not found" });
 
-    if (user.isVerified) {
+    if (user.isVerified)
       return res.status(400).json({ message: "Already verified" });
-    }
 
     const otp = generateOtp();
     const expires = new Date(Date.now() + 5 * 60 * 1000);
@@ -230,8 +210,8 @@ app.post("/api/resend-otp", async (req, res) => {
 
     try {
       await sendOtpMail(user.email, otp);
-    } catch (mailErr) {
-      console.error("Error resending OTP email:", mailErr.message);
+    } catch (err) {
+      console.error("Error resending OTP email:", err.message);
     }
 
     return res.json({ message: "OTP resent to your email" });
@@ -241,11 +221,9 @@ app.post("/api/resend-otp", async (req, res) => {
   }
 });
 
-// POST /api/login (username OR email) – now checks isVerified
 app.post("/api/login", async (req, res) => {
   try {
-    const { identifier, password } = req.body; // identifier = username or email
-
+    const { identifier, password } = req.body;
     if (!identifier || !password)
       return res
         .status(400)
@@ -261,11 +239,10 @@ app.post("/api/login", async (req, res) => {
     if (!valid)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    if (!user.isVerified) {
+    if (!user.isVerified)
       return res
         .status(403)
         .json({ message: "Please verify your email with the OTP sent to you." });
-    }
 
     const token = jwt.sign(
       { id: user._id, username: user.username, email: user.email },
@@ -283,9 +260,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ====== Task Routes (Protected) ======
-
-// GET /api/tasks - get all tasks for logged-in user
+// ====== Task Routes ======
 app.get("/api/tasks", authMiddleware, async (req, res) => {
   try {
     const tasks = await Task.find({ userId: req.userId }).sort({
@@ -298,20 +273,17 @@ app.get("/api/tasks", authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/tasks - add new task (with optional deadline)
 app.post("/api/tasks", authMiddleware, async (req, res) => {
   try {
     const { title, deadline } = req.body;
     if (!title)
       return res.status(400).json({ message: "Title is required" });
 
-    const task = new Task({
+    const task = await Task.create({
       userId: req.userId,
       title,
       deadline: deadline ? new Date(deadline) : undefined,
     });
-
-    await task.save();
 
     return res.status(201).json(task);
   } catch (err) {
@@ -320,7 +292,6 @@ app.post("/api/tasks", authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /api/tasks/:id - edit task (title, completed, deadline)
 app.put("/api/tasks/:id", authMiddleware, async (req, res) => {
   try {
     const { title, completed, deadline } = req.body;
@@ -347,7 +318,6 @@ app.put("/api/tasks/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /api/tasks/:id - delete task
 app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
   try {
     const task = await Task.findOneAndDelete({
@@ -364,10 +334,9 @@ app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// ====== Email scheduler: check due tasks every minute ======
+// ====== Scheduler (optional simple version) ======
 async function checkDueTasksAndNotify() {
   const now = new Date();
-
   try {
     const dueTasks = await Task.find({
       deadline: { $lte: now },
@@ -383,7 +352,7 @@ async function checkDueTasksAndNotify() {
         from: `"MERN To‑Do · Alerts" <${process.env.MAIL_USER}>`,
         to: user.email,
         subject: `⏰ Task due now · ${task.title}`,
-        html: `...same HTML you already had...`,
+        html: `Task "${task.title}" is due now.`,
       };
 
       try {
@@ -400,10 +369,9 @@ async function checkDueTasksAndNotify() {
   }
 }
 
-// run every minute
 setInterval(checkDueTasksAndNotify, 60 * 1000);
 
-// ====== Start Server ======
+// ====== Start ======
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

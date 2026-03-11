@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DAILY TASKS · Workspace</title>
+  <title>DAILY TASKS Workspace</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
@@ -50,7 +51,8 @@
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       height: 100%;
     }
 
@@ -68,8 +70,8 @@
       inset: 0;
       pointer-events: none;
       background:
-        radial-gradient(circle at 0% 0%, rgba(59,130,246,0.18), transparent 55%),
-        radial-gradient(circle at 100% 100%, rgba(168,85,247,0.16), transparent 55%);
+        radial-gradient(circle at 0 0, rgba(59, 130, 246, 0.18), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.16), transparent 55%);
       opacity: 1;
       z-index: -1;
     }
@@ -107,7 +109,7 @@
       color: #e5e7eb;
       font-size: 0.9rem;
       font-weight: 600;
-      box-shadow: 0 14px 30px rgba(59,130,246,0.45);
+      box-shadow: 0 14px 30px rgba(59, 130, 246, 0.45);
     }
 
     .brand-text {
@@ -163,7 +165,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 14px 30px rgba(59,130,246,0.6);
+      box-shadow: 0 14px 30px rgba(59, 130, 246, 0.6);
     }
 
     /* Theme toggle */
@@ -337,12 +339,12 @@
     }
 
     input::placeholder {
-      color: rgba(148,163,184,0.9);
+      color: rgba(148, 163, 184, 0.9);
     }
 
     input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(37,99,235,0.55);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.55);
       background: var(--bg-surface);
     }
 
@@ -386,7 +388,7 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       color: white;
-      box-shadow: 0 14px 30px rgba(37,99,235,0.55);
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.55);
     }
 
     .btn-outline {
@@ -397,7 +399,7 @@
 
     .btn-danger {
       background: transparent;
-      border: 1px solid rgba(248,113,113,0.75);
+      border: 1px solid rgba(248, 113, 113, 0.75);
       color: var(--danger);
     }
 
@@ -409,7 +411,7 @@
 
     .btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 14px 30px rgba(15,23,42,0.2);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.2);
       border-color: var(--accent);
     }
 
@@ -474,7 +476,7 @@
     .chip-btn.active {
       background: var(--accent-soft);
       color: var(--accent);
-      border-color: rgba(37,99,235,0.6);
+      border-color: rgba(37, 99, 235, 0.6);
     }
 
     ul.tasks {
@@ -532,12 +534,12 @@
     }
 
     .task-status-pill.pending {
-      border-color: rgba(234,179,8,0.7);
+      border-color: rgba(234, 179, 8, 0.7);
       color: var(--warning);
     }
 
     .task-status-pill.done {
-      border-color: rgba(34,197,94,0.7);
+      border-color: rgba(34, 197, 94, 0.7);
       color: var(--success);
     }
 
@@ -603,14 +605,14 @@
 
     .mini-metrics {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.7rem;
       padding: 1rem 1.6rem 0.5rem;
     }
 
     .mini-metric-card {
       border-radius: 12px;
-      border: 1px solid rgba(30,64,175,0.5);
+      border: 1px solid rgba(30, 64, 175, 0.5);
       background: var(--bg-surface-subtle);
       padding: 0.6rem 0.65rem;
     }
@@ -662,7 +664,7 @@
       width: 6px;
       height: 6px;
       border-radius: 999px;
-      background: rgba(148,163,184,0.9);
+      background: rgba(148, 163, 184, 0.9);
       margin-top: 0.32rem;
       flex-shrink: 0;
     }
@@ -693,23 +695,29 @@
     }
 
     .toast.success {
-      border-color: rgba(22,163,74,0.75);
+      border-color: rgba(22, 163, 74, 0.75);
     }
 
     .toast.error {
-      border-color: rgba(248,113,113,0.8);
+      border-color: rgba(248, 113, 113, 0.8);
     }
 
     .toast.info {
-      border-color: rgba(59,130,246,0.8);
+      border-color: rgba(59, 130, 246, 0.8);
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    /* OTP section small tweaks */
+    /* OTP section tweaks */
     #otpSection {
       margin-top: 1rem;
       padding-top: 0.75rem;
@@ -732,6 +740,7 @@
     }
   </style>
 </head>
+
 <body data-theme="dark">
   <div class="toast-container" id="toastContainer"></div>
 
@@ -747,7 +756,7 @@
     <div class="nav-right">
       <div class="nav-pill">
         <span class="status-dot"></span>
-        <span>Local API · localhost:5000</span>
+        <span>Local API: localhost:5000</span>
       </div>
       <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
         <span class="icon">🌙</span>
@@ -760,7 +769,7 @@
   </header>
 
   <main class="shell">
-    <!-- Left column: Auth + tasks -->
+    <!-- Left column: Auth + Tasks -->
     <section>
       <div class="hero-header">
         <div class="eyebrow">
@@ -769,7 +778,7 @@
         </div>
         <h1>Sign in and run your day from one place.</h1>
         <p class="hero-sub">
-          Create a focused to‑do board that understands your deadlines. Log in, add tasks, and keep a clear view of what needs attention today.
+          Create a focused todo board that understands your deadlines. Log in, add tasks, and keep a clear view of what needs attention today.
         </p>
       </div>
 
@@ -804,7 +813,7 @@
             </div>
           </form>
 
-          <!-- OTP verification section (added) -->
+          <!-- OTP verification section -->
           <div id="otpSection" style="display:none;">
             <label for="otpInput">Email verification code</label>
             <input id="otpInput" type="text" placeholder="Enter OTP sent to your email" />
@@ -817,7 +826,6 @@
                 Verify email
               </button>
             </div>
-
             <p id="otpMessage" role="status" aria-live="polite"></p>
           </div>
 
@@ -855,6 +863,13 @@
               <div class="panel-title">Today’s board</div>
               <div class="panel-subtitle">Capture what matters and keep it moving.</div>
             </div>
+            <div class="panel-tag">Signed‑in view</div>
+          </div>
+
+          <div class="inline-actions" style="justify-content: space-between; margin-bottom: 0.4rem;">
+            <button class="btn btn-small btn-outline" type="button" onclick="loadTasks()">
+              Refresh
+            </button>
             <button class="btn btn-small btn-danger" type="button" onclick="logout()">
               Logout
             </button>
@@ -880,25 +895,27 @@
           <div class="counter-row">
             <div>
               <span>Total <strong id="totalCount">0</strong></span>
-              <span style="margin-left: 0.4rem;">· Completed <strong id="completedCount">0</strong></span>
-            </div>
-            <div class="filter-chips">
-              <button type="button" class="chip-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-              <button type="button" class="chip-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
-              <button type="button" class="chip-btn" data-filter="completed" onclick="setFilter('completed')">Completed</button>
+              <span style="margin-left: 0.4rem;">Completed <strong id="completedCount">0</strong></span>
             </div>
           </div>
 
+          <div class="filter-chips" style="margin-top: 0.7rem;">
+            <button type="button" class="chip-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+            <button type="button" class="chip-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+            <button type="button" class="chip-btn" data-filter="completed" onclick="setFilter('completed')">Completed</button>
+          </div>
+
           <ul class="tasks" id="taskList" aria-live="polite"></ul>
+
           <div class="empty-state" id="emptyState" style="display:none;">
-            <span>✨</span>
+            <span>•</span>
             <span>No tasks yet. Add your first item to get started.</span>
           </div>
         </section>
       </div>
     </section>
 
-    <!-- Right column: summary / metrics -->
+    <!-- Right column summary metrics -->
     <aside class="side-panel" aria-label="Workspace summary">
       <div class="side-hero">
         <div class="side-eyebrow">Workspace overview</div>
@@ -950,15 +967,17 @@
     </aside>
   </main>
 
+  <!-- JS: frontend logic -->
   <script>
-    const API_BASE = "http://localhost:5000/api";
+    const APIBASE = "http://localhost:5000/api";
+
     let token = null;
     let currentUsername = null;
     let isDark = true;
     let deadlineCheckIntervalId = null;
     let currentFilter = "all";
     let cachedTasks = [];
-    let pendingUserId = null; // for OTP flow
+    let pendingUserId = null;
 
     // ---------- Theme handling ----------
     function applyTheme() {
@@ -1019,9 +1038,14 @@
         },
       };
       if (token) finalOptions.headers["Authorization"] = "Bearer " + token;
-      const res = await fetch(API_BASE + path, finalOptions);
+
+      const res = await fetch(APIBASE + path, finalOptions);
       let data;
-      try { data = await res.json(); } catch { data = {}; }
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
         throw new Error(data.message || "Request failed");
       }
@@ -1037,25 +1061,29 @@
       el.classList.add(type === "error" ? "error" : "success");
     }
 
-    function toggleAuthLoading(isLoading) {
-      const registerBtn = document.getElementById("registerBtn");
-      const loginBtn = document.getElementById("loginBtn");
-      if (registerBtn) registerBtn.disabled = isLoading;
-      if (loginBtn) loginBtn.disabled = isLoading;
-    }
-
-    function prefillDemoUser() {
-      document.getElementById("regUsername").value = "demoUser";
-      document.getElementById("regEmail").value = "demo@example.com";
-      document.getElementById("regPassword").value = "Demo@123";
-    }
-
     function setOtpMessage(text, type) {
       const el = document.getElementById("otpMessage");
       el.textContent = text || "";
       el.className = "";
       if (!text) return;
       el.classList.add(type === "error" ? "error" : "success");
+    }
+
+    function toggleAuthLoading(isLoading) {
+      const registerBtn = document.getElementById("registerBtn");
+      const loginBtn = document.getElementById("loginBtn");
+      const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+      const resendOtpBtn = document.getElementById("resendOtpBtn");
+      if (registerBtn) registerBtn.disabled = isLoading;
+      if (loginBtn) loginBtn.disabled = isLoading;
+      if (verifyOtpBtn) verifyOtpBtn.disabled = isLoading;
+      if (resendOtpBtn) resendOtpBtn.disabled = isLoading;
+    }
+
+    function prefillDemoUser() {
+      document.getElementById("regUsername").value = "demoUser";
+      document.getElementById("regEmail").value = "demo@example.com";
+      document.getElementById("regPassword").value = "Demo@123";
     }
 
     // ---------- Auth actions ----------
@@ -1080,12 +1108,14 @@
           body: JSON.stringify({ username, email, password }),
         });
 
-        // expect backend to return userId for OTP verification
-        pendingUserId = data.userId;
+        pendingUserId = data.userId || null;
+
         document.getElementById("otpSection").style.display = "block";
         document.getElementById("resendOtpBtn").style.display = "inline-flex";
+        document.getElementById("otpInput").value = "";
 
-        setAuthMessage("OTP sent to your email. Please verify.", "success");
+        setAuthMessage("Account created. Check email for OTP.", "success");
+        setOtpMessage("OTP sent to your email. Please verify.", "success");
         showToast("Account created. Check email for OTP.", "success");
       } catch (err) {
         setAuthMessage(err.message || "Registration failed", "error");
@@ -1128,36 +1158,41 @@
       }
     }
 
-    // ---------- OTP actions (frontend only) ----------
+    // ---------- OTP actions ----------
     async function handleVerifyOtp() {
       const otp = document.getElementById("otpInput").value.trim();
       setOtpMessage("", "");
+
       if (!otp || !pendingUserId) {
         setOtpMessage("Missing OTP or user.", "error");
         return;
       }
+
+      toggleAuthLoading(true);
       try {
-        const data = await apiFetch("/verify-otp", {
+        const data = await apiFetch("/verify-email", {
           method: "POST",
           body: JSON.stringify({ userId: pendingUserId, otp }),
         });
         setOtpMessage(data.message || "Email verified successfully.", "success");
         showToast("Email verified. You can sign in now.", "success");
-        // Optionally clear registration fields
-        document.getElementById("regUsername").value = "";
-        document.getElementById("regEmail").value = "";
-        document.getElementById("regPassword").value = "";
         document.getElementById("otpInput").value = "";
       } catch (err) {
         setOtpMessage(err.message || "Verification failed", "error");
+      } finally {
+        toggleAuthLoading(false);
       }
     }
 
     async function resendOtp() {
+      setOtpMessage("", "");
+
       if (!pendingUserId) {
         setOtpMessage("No pending user to resend OTP for.", "error");
         return;
       }
+
+      toggleAuthLoading(true);
       try {
         const data = await apiFetch("/resend-otp", {
           method: "POST",
@@ -1167,6 +1202,8 @@
         showToast("OTP resent.", "info");
       } catch (err) {
         setOtpMessage(err.message || "Failed to resend OTP", "error");
+      } finally {
+        toggleAuthLoading(false);
       }
     }
 
@@ -1198,7 +1235,8 @@
     function showTodo() {
       document.getElementById("authCard").style.display = "none";
       document.getElementById("todoCard").style.display = "block";
-      document.getElementById("welcomeUser").innerText = `Welcome back, ${currentUsername || "there"}.`;
+      document.getElementById("welcomeUser").innerText =
+        `Welcome back, ${currentUsername || "there"}.`;
       loadTasks();
 
       if (!deadlineCheckIntervalId) {
@@ -1301,7 +1339,8 @@
         }
 
         const statusPill = document.createElement("span");
-        statusPill.className = "task-status-pill " + (task.completed ? "done" : "pending");
+        statusPill.className =
+          "task-status-pill " + (task.completed ? "done" : "pending");
         statusPill.textContent = task.completed ? "Done" : "Pending";
 
         metaRow.appendChild(deadlineSpan);
@@ -1378,6 +1417,7 @@
       if (!Array.isArray(tasks)) return;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+
       tasks.forEach((task) => {
         if (!task.deadline || task.completed) return;
         const deadlineDate = new Date(task.deadline);
