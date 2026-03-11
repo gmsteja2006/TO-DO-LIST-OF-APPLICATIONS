@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAILY TASKS · Workspace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* THEME TOKENS */
+    :root {
+      /* Light theme */
+      --bg-page: #f9fafb;
+      --bg-surface: #ffffff;
+      --bg-surface-subtle: #f3f4f6;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.08);
+      --accent-strong: #1d4ed8;
+      --accent-purple: #a855f7;
+      --text-main: #0f172a;
+      --text-muted: #6b7280;
+      --danger: #b91c1c;
+      --success: #15803d;
+      --warning: #b45309;
+      --border-subtle: rgba(148, 163, 184, 0.45);
+      --shadow-soft: 0 20px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Dark theme overrides */
+    [data-theme="dark"] {
+      --bg-page: #020617;
+      --bg-surface: rgba(15, 23, 42, 0.97);
+      --bg-surface-subtle: rgba(15, 23, 42, 0.9);
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.1);
+      --accent-strong: #2563eb;
+      --accent-purple: #a855f7;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --success: #22c55e;
+      --warning: #fbbf24;
+      --border-subtle: rgba(148, 163, 184, 0.25);
+      --shadow-soft: 0 22px 60px rgba(15, 23, 42, 0.7);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at top, #0b1120 0, var(--bg-page) 45%, var(--bg-page) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      transition: background 0.25s ease, color 0.2s ease;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(59,130,246,0.18), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(168,85,247,0.16), transparent 55%);
+      opacity: 1;
+      z-index: -1;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* Top navigation */
+    .nav {
+      max-width: 1200px;
+      margin: 1.4rem auto 0;
+      padding: 0 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 0 0, #3b82f6, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 14px 30px rgba(59,130,246,0.45);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-pill {
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      background: var(--bg-surface-subtle);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--success);
+    }
+
+    .nav-cta {
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      border: none;
+      color: white;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 14px 30px rgba(59,130,246,0.6);
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-subtle);
+      padding: 6px 11px;
+      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .theme-toggle span.icon {
+      font-size: 1rem;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+    }
+
+    /* Main layout */
+    .shell {
+      max-width: 1200px;
+      margin: 1.8rem auto 2.6rem;
+      padding: 0 1.8rem 2.6rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.25fr);
+      gap: 1.8rem;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 960px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .nav {
+        padding-inline: 1.2rem;
+      }
+      .shell {
+        padding-inline: 1.2rem;
+      }
+    }
+
+    /* Left column */
+    .hero-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-subtle);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.7rem;
+    }
+
+    .eyebrow .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--success);
+    }
+
+    h1 {
+      font-size: 2.3rem;
+      line-height: 1.12;
+      letter-spacing: -0.04em;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, #111827, #93c5fd, #a855f7);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    [data-theme="dark"] h1 {
+      background: linear-gradient(135deg, #e5e7eb, #93c5fd, #a855f7);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    .layout-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--bg-surface);
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      padding: 1.6rem 1.5rem 1.7rem;
+      position: relative;
+      color: var(--text-main);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .panel-title {
+      font-size: 0.98rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .panel-tag {
+      font-size: 0.75rem;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      background: var(--bg-surface-subtle);
+    }
+
+    hr.divider {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
+      margin: 1.1rem 0 1.1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+      margin-top: 0.65rem;
+    }
+
+    input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-subtle);
+      color: var(--text-main);
+      font-size: 0.9rem;
+      padding: 9px 11px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input::placeholder {
+      color: rgba(148,163,184,0.9);
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.55);
+      background: var(--bg-surface);
+    }
+
+    .two-col-inputs {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.1fr);
+      gap: 0.7rem;
+      margin-top: 0.55rem;
+    }
+
+    @media (max-width: 640px) {
+      .two-col-inputs {
+        grid-template-columns: 1fr;
+      }
+      .panel {
+        padding-inline: 1.2rem;
+      }
+    }
+
+    .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 8px 15px;
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.15s ease, box-shadow 0.18s ease, background 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: white;
+      box-shadow: 0 14px 30px rgba(37,99,235,0.55);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid rgba(248,113,113,0.75);
+      color: var(--danger);
+    }
+
+    .btn-small {
+      padding: 6px 11px;
+      font-size: 0.78rem;
+      box-shadow: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(15,23,42,0.2);
+      border-color: var(--accent);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #authMessage {
+      font-size: 0.78rem;
+      margin-top: 0.8rem;
+      min-height: 1em;
+      color: var(--text-muted);
+    }
+
+    #authMessage.error {
+      color: var(--danger);
+    }
+
+    #authMessage.success {
+      color: var(--success);
+    }
+
+    #welcomeUser {
+      font-size: 0.86rem;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+
+    .counter-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.9rem;
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.75rem;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .chip-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(37,99,235,0.6);
+    }
+
+    ul.tasks {
+      list-style: none;
+      margin-top: 0.85rem;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .task-main {
+      min-width: 0;
+    }
+
+    .task-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      word-break: break-word;
+      color: var(--text-main);
+    }
+
+    .task-title.completed {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .task-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 3px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .deadline-label.deadline-overdue {
+      color: var(--danger);
+    }
+
+    .deadline-label.deadline-today {
+      color: var(--warning);
+    }
+
+    .task-status-pill {
+      padding: 1px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+    }
+
+    .task-status-pill.pending {
+      border-color: rgba(234,179,8,0.7);
+      color: var(--warning);
+    }
+
+    .task-status-pill.done {
+      border-color: rgba(34,197,94,0.7);
+      color: var(--success);
+    }
+
+    .task-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: flex-end;
+    }
+
+    .empty-state {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.7rem;
+    }
+
+    /* Right column */
+    .side-panel {
+      background: var(--bg-surface);
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      color: var(--text-main);
+    }
+
+    .side-hero {
+      padding: 1.6rem 1.6rem 0.3rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .side-eyebrow {
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+
+    .side-title {
+      font-size: 1.02rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+
+    .side-text {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      max-width: 420px;
+      line-height: 1.6;
+    }
+
+    .side-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.8rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .mini-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 0.7rem;
+      padding: 1rem 1.6rem 0.5rem;
+    }
+
+    .mini-metric-card {
+      border-radius: 12px;
+      border: 1px solid rgba(30,64,175,0.5);
+      background: var(--bg-surface-subtle);
+      padding: 0.6rem 0.65rem;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.1rem;
+    }
+
+    .metric-value {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .metric-pill {
+      font-size: 0.72rem;
+      margin-top: 0.2rem;
+      color: var(--text-muted);
+    }
+
+    .tips {
+      padding: 0.85rem 1.6rem 1.4rem;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 0.4rem;
+    }
+
+    .tips-label {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+    }
+
+    .tips-list {
+      list-style: none;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .tips-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .tips-bullet {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.9);
+      margin-top: 0.32rem;
+      flex-shrink: 0;
+    }
+
+    /* Toasts */
+    .toast-container {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      max-width: 320px;
+      z-index: 30;
+    }
+
+    .toast {
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      animation: slideIn 0.2s ease-out;
+    }
+
+    .toast.success {
+      border-color: rgba(22,163,74,0.75);
+    }
+
+    .toast.error {
+      border-color: rgba(248,113,113,0.8);
+    }
+
+    .toast.info {
+      border-color: rgba(59,130,246,0.8);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* OTP section small tweaks */
+    #otpSection {
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--border-subtle);
+    }
+
+    #otpMessage {
+      font-size: 0.78rem;
+      margin-top: 0.5rem;
+      min-height: 1em;
+      color: var(--text-muted);
+    }
+
+    #otpMessage.error {
+      color: var(--danger);
+    }
+
+    #otpMessage.success {
+      color: var(--success);
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Top nav -->
+  <header class="nav">
+    <div class="nav-left">
+      <div class="logo-mark">TD</div>
+      <div class="brand-text">
+        <div class="brand-name">DAILY TASKS</div>
+        <div class="brand-sub">Personal engineering workspace</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-pill">
+        <span class="status-dot"></span>
+        <span>Local API · localhost:5000</span>
+      </div>
+      <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="icon">🌙</span>
+        <span class="label">Dark</span>
+      </button>
+      <button class="nav-cta" type="button">
+        <span>Get started</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- Left column: Auth + tasks -->
+    <section>
+      <div class="hero-header">
+        <div class="eyebrow">
+          <span class="badge-dot"></span>
+          <span>Secure, deadline‑aware task tracking</span>
+        </div>
+        <h1>Sign in and run your day from one place.</h1>
+        <p class="hero-sub">
+          Create a focused to‑do board that understands your deadlines. Log in, add tasks, and keep a clear view of what needs attention today.
+        </p>
+      </div>
+
+      <div class="layout-grid">
+        <!-- Auth -->
+        <section class="panel" id="authCard" aria-label="Authentication">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Create account</div>
+              <div class="panel-subtitle">Use this for first‑time access.</div>
+            </div>
+            <div class="panel-tag">New user</div>
+          </div>
+
+          <form onsubmit="handleRegister(event)" novalidate>
+            <label for="regUsername">Username</label>
+            <input id="regUsername" name="regUsername" type="text" autocomplete="username" placeholder="Choose a username" />
+
+            <label for="regEmail">Email</label>
+            <input id="regEmail" name="regEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+
+            <label for="regPassword">Password</label>
+            <input id="regPassword" name="regPassword" type="password" autocomplete="new-password" placeholder="Create a strong password" />
+
+            <div class="inline-actions">
+              <button class="btn btn-primary" type="submit" id="registerBtn">
+                <span>Sign up</span>
+              </button>
+              <button class="btn btn-outline" type="button" onclick="prefillDemoUser()">
+                Use demo user
+              </button>
+            </div>
+          </form>
+
+          <!-- OTP verification section (added) -->
+          <div id="otpSection" style="display:none;">
+            <label for="otpInput">Email verification code</label>
+            <input id="otpInput" type="text" placeholder="Enter OTP sent to your email" />
+
+            <div class="inline-actions">
+              <button class="btn btn-outline" type="button" id="resendOtpBtn" onclick="resendOtp()" style="display:none;">
+                Resend OTP
+              </button>
+              <button class="btn btn-primary" type="button" id="verifyOtpBtn" onclick="handleVerifyOtp()">
+                Verify email
+              </button>
+            </div>
+
+            <p id="otpMessage" role="status" aria-live="polite"></p>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Sign in</div>
+              <div class="panel-subtitle">Already have an account? Continue here.</div>
+            </div>
+            <div class="panel-tag">Existing user</div>
+          </div>
+
+          <form onsubmit="handleLogin(event)" novalidate>
+            <label for="loginIdentifier">Username or email</label>
+            <input id="loginIdentifier" name="loginIdentifier" type="text" autocomplete="username" placeholder="Enter your username or email" />
+
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" name="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" />
+
+            <div class="inline-actions">
+              <button class="btn btn-primary" type="submit" id="loginBtn">
+                <span>Sign in</span>
+              </button>
+            </div>
+          </form>
+
+          <p id="authMessage" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- Tasks -->
+        <section class="panel" id="todoCard" aria-label="Task manager" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Today’s board</div>
+              <div class="panel-subtitle">Capture what matters and keep it moving.</div>
+            </div>
+            <button class="btn btn-small btn-danger" type="button" onclick="logout()">
+              Logout
+            </button>
+          </div>
+
+          <p id="welcomeUser"></p>
+
+          <label for="newTaskTitle">Task</label>
+          <div class="two-col-inputs">
+            <input id="newTaskTitle" type="text" placeholder="What do you need to ship?" />
+            <div>
+              <label for="newTaskDeadline">Deadline</label>
+              <input id="newTaskDeadline" type="date" />
+            </div>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn btn-primary" type="button" onclick="addTask()" id="addTaskBtn">
+              Add task
+            </button>
+          </div>
+
+          <div class="counter-row">
+            <div>
+              <span>Total <strong id="totalCount">0</strong></span>
+              <span style="margin-left: 0.4rem;">· Completed <strong id="completedCount">0</strong></span>
+            </div>
+            <div class="filter-chips">
+              <button type="button" class="chip-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+              <button type="button" class="chip-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+              <button type="button" class="chip-btn" data-filter="completed" onclick="setFilter('completed')">Completed</button>
+            </div>
+          </div>
+
+          <ul class="tasks" id="taskList" aria-live="polite"></ul>
+          <div class="empty-state" id="emptyState" style="display:none;">
+            <span>✨</span>
+            <span>No tasks yet. Add your first item to get started.</span>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Right column: summary / metrics -->
+    <aside class="side-panel" aria-label="Workspace summary">
+      <div class="side-hero">
+        <div class="side-eyebrow">Workspace overview</div>
+        <div class="side-title">See your tasks like a product team would.</div>
+        <p class="side-text">
+          Track what’s due today, what’s already shipped, and what’s at risk. Use this as a lightweight dashboard for your own work.
+        </p>
+        <div class="side-badge-row">
+          <span class="status-dot"></span>
+          <span>Deadline checks run every minute while you’re signed in.</span>
+        </div>
+      </div>
+
+      <div class="mini-metrics">
+        <div class="mini-metric-card">
+          <div class="metric-label">Due today</div>
+          <div class="metric-value" id="metricToday">0</div>
+          <div class="metric-pill">Finish before midnight</div>
+        </div>
+        <div class="mini-metric-card">
+          <div class="metric-label">Completed</div>
+          <div class="metric-value" id="metricCompleted">0</div>
+          <div class="metric-pill">Tasks shipped</div>
+        </div>
+        <div class="mini-metric-card">
+          <div class="metric-label">Overdue</div>
+          <div class="metric-value" id="metricOverdue">0</div>
+          <div class="metric-pill">Needs attention</div>
+        </div>
+      </div>
+
+      <div class="tips">
+        <div class="tips-label">Working tips</div>
+        <ul class="tips-list">
+          <li>
+            <div class="tips-bullet"></div>
+            <div>Break large tasks into smaller, shippable pieces.</div>
+          </li>
+          <li>
+            <div class="tips-bullet"></div>
+            <div>Always give tasks a deadline, even if it’s just a target date.</div>
+          </li>
+          <li>
+            <div class="tips-bullet"></div>
+            <div>Review this board at the start and end of each day.</div>
+          </li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const API_BASE = "http://localhost:5000/api";
+    let token = null;
+    let currentUsername = null;
+    let isDark = true;
+    let deadlineCheckIntervalId = null;
+    let currentFilter = "all";
+    let cachedTasks = [];
+    let pendingUserId = null; // for OTP flow
+
+    // ---------- Theme handling ----------
+    function applyTheme() {
+      const body = document.body;
+      const toggle = document.querySelector(".theme-toggle");
+      if (!toggle) return;
+      const icon = toggle.querySelector(".icon");
+      const label = toggle.querySelector(".label");
+
+      body.setAttribute("data-theme", isDark ? "dark" : "light");
+
+      if (isDark) {
+        icon.textContent = "🌙";
+        label.textContent = "Dark";
+      } else {
+        icon.textContent = "☀️";
+        label.textContent = "Light";
+      }
+
+      localStorage.setItem("todo-theme", isDark ? "dark" : "light");
+    }
+
+    function loadThemePreference() {
+      const saved = localStorage.getItem("todo-theme");
+      if (saved === "dark") isDark = true;
+      else if (saved === "light") isDark = false;
+      else isDark = true;
+      applyTheme();
+    }
+
+    function toggleTheme() {
+      isDark = !isDark;
+      applyTheme();
+    }
+
+    // ---------- Toasts ----------
+    function showToast(message, type = "info", duration = 2600) {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+      const toast = document.createElement("div");
+      toast.className = "toast " + type;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(4px)";
+        setTimeout(() => toast.remove(), 180);
+      }, duration);
+    }
+
+    // ---------- API helper ----------
+    async function apiFetch(path, options = {}) {
+      const finalOptions = {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+      };
+      if (token) finalOptions.headers["Authorization"] = "Bearer " + token;
+      const res = await fetch(API_BASE + path, finalOptions);
+      let data;
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) {
+        throw new Error(data.message || "Request failed");
+      }
+      return data;
+    }
+
+    // ---------- Auth helpers ----------
+    function setAuthMessage(text, type) {
+      const el = document.getElementById("authMessage");
+      el.textContent = text || "";
+      el.className = "";
+      if (!text) return;
+      el.classList.add(type === "error" ? "error" : "success");
+    }
+
+    function toggleAuthLoading(isLoading) {
+      const registerBtn = document.getElementById("registerBtn");
+      const loginBtn = document.getElementById("loginBtn");
+      if (registerBtn) registerBtn.disabled = isLoading;
+      if (loginBtn) loginBtn.disabled = isLoading;
+    }
+
+    function prefillDemoUser() {
+      document.getElementById("regUsername").value = "demoUser";
+      document.getElementById("regEmail").value = "demo@example.com";
+      document.getElementById("regPassword").value = "Demo@123";
+    }
+
+    function setOtpMessage(text, type) {
+      const el = document.getElementById("otpMessage");
+      el.textContent = text || "";
+      el.className = "";
+      if (!text) return;
+      el.classList.add(type === "error" ? "error" : "success");
+    }
+
+    // ---------- Auth actions ----------
+    async function handleRegister(event) {
+      event.preventDefault();
+      const username = document.getElementById("regUsername").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+      const password = document.getElementById("regPassword").value.trim();
+      setAuthMessage("", "");
+      setOtpMessage("", "");
+      toggleAuthLoading(true);
+
+      if (!username || !email || !password) {
+        setAuthMessage("Username, email and password are required.", "error");
+        toggleAuthLoading(false);
+        return;
+      }
+
+      try {
+        const data = await apiFetch("/register", {
+          method: "POST",
+          body: JSON.stringify({ username, email, password }),
+        });
+
+        // expect backend to return userId for OTP verification
+        pendingUserId = data.userId;
+        document.getElementById("otpSection").style.display = "block";
+        document.getElementById("resendOtpBtn").style.display = "inline-flex";
+
+        setAuthMessage("OTP sent to your email. Please verify.", "success");
+        showToast("Account created. Check email for OTP.", "success");
+      } catch (err) {
+        setAuthMessage(err.message || "Registration failed", "error");
+      } finally {
+        toggleAuthLoading(false);
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const identifier = document.getElementById("loginIdentifier").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      setAuthMessage("", "");
+      toggleAuthLoading(true);
+
+      if (!identifier || !password) {
+        setAuthMessage("Identifier and password are required.", "error");
+        toggleAuthLoading(false);
+        return;
+      }
+
+      try {
+        const data = await apiFetch("/login", {
+          method: "POST",
+          body: JSON.stringify({ identifier, password }),
+        });
+        token = data.token;
+        currentUsername = data.user.username;
+        localStorage.setItem("todo-token", token);
+        localStorage.setItem("todo-username", currentUsername);
+        document.getElementById("loginIdentifier").value = "";
+        document.getElementById("loginPassword").value = "";
+        setAuthMessage("", "");
+        showTodo();
+        showToast("Signed in successfully.", "success");
+      } catch (err) {
+        setAuthMessage(err.message || "Login failed", "error");
+      } finally {
+        toggleAuthLoading(false);
+      }
+    }
+
+    // ---------- OTP actions (frontend only) ----------
+    async function handleVerifyOtp() {
+      const otp = document.getElementById("otpInput").value.trim();
+      setOtpMessage("", "");
+      if (!otp || !pendingUserId) {
+        setOtpMessage("Missing OTP or user.", "error");
+        return;
+      }
+      try {
+        const data = await apiFetch("/verify-otp", {
+          method: "POST",
+          body: JSON.stringify({ userId: pendingUserId, otp }),
+        });
+        setOtpMessage(data.message || "Email verified successfully.", "success");
+        showToast("Email verified. You can sign in now.", "success");
+        // Optionally clear registration fields
+        document.getElementById("regUsername").value = "";
+        document.getElementById("regEmail").value = "";
+        document.getElementById("regPassword").value = "";
+        document.getElementById("otpInput").value = "";
+      } catch (err) {
+        setOtpMessage(err.message || "Verification failed", "error");
+      }
+    }
+
+    async function resendOtp() {
+      if (!pendingUserId) {
+        setOtpMessage("No pending user to resend OTP for.", "error");
+        return;
+      }
+      try {
+        const data = await apiFetch("/resend-otp", {
+          method: "POST",
+          body: JSON.stringify({ userId: pendingUserId }),
+        });
+        setOtpMessage(data.message || "OTP resent to your email.", "success");
+        showToast("OTP resent.", "info");
+      } catch (err) {
+        setOtpMessage(err.message || "Failed to resend OTP", "error");
+      }
+    }
+
+    // ---------- Session / view handling ----------
+    function logout() {
+      token = null;
+      currentUsername = null;
+      cachedTasks = [];
+      localStorage.removeItem("todo-token");
+      localStorage.removeItem("todo-username");
+      document.getElementById("taskList").innerHTML = "";
+      document.getElementById("totalCount").textContent = "0";
+      document.getElementById("completedCount").textContent = "0";
+      document.getElementById("emptyState").style.display = "none";
+      updateMiniMetrics([]);
+      showAuth();
+      showToast("Logged out.", "info");
+    }
+
+    function showAuth() {
+      document.getElementById("authCard").style.display = "block";
+      document.getElementById("todoCard").style.display = "none";
+      if (deadlineCheckIntervalId) {
+        clearInterval(deadlineCheckIntervalId);
+        deadlineCheckIntervalId = null;
+      }
+    }
+
+    function showTodo() {
+      document.getElementById("authCard").style.display = "none";
+      document.getElementById("todoCard").style.display = "block";
+      document.getElementById("welcomeUser").innerText = `Welcome back, ${currentUsername || "there"}.`;
+      loadTasks();
+
+      if (!deadlineCheckIntervalId) {
+        deadlineCheckIntervalId = setInterval(async () => {
+          if (!token) return;
+          try {
+            const data = await apiFetch("/tasks");
+            checkDeadlines(data);
+          } catch (err) {
+            console.error("Error checking deadlines", err);
+          }
+        }, 60000);
+      }
+    }
+
+    // ---------- Task actions ----------
+    async function loadTasks() {
+      if (!token) return;
+      try {
+        const data = await apiFetch("/tasks");
+        cachedTasks = Array.isArray(data) ? data : [];
+        renderTasks();
+        checkDeadlines(cachedTasks);
+      } catch (err) {
+        showToast("Failed to load tasks: " + err.message, "error");
+      }
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll(".chip-btn").forEach((btn) => {
+        const f = btn.getAttribute("data-filter");
+        btn.classList.toggle("active", f === filter);
+      });
+      renderTasks();
+    }
+
+    function getFilteredTasks() {
+      if (currentFilter === "pending") return cachedTasks.filter((t) => !t.completed);
+      if (currentFilter === "completed") return cachedTasks.filter((t) => t.completed);
+      return cachedTasks;
+    }
+
+    function renderTasks() {
+      const list = document.getElementById("taskList");
+      const emptyState = document.getElementById("emptyState");
+      list.innerHTML = "";
+      const tasks = getFilteredTasks();
+      const total = cachedTasks.length;
+      const completed = cachedTasks.filter((t) => t.completed).length;
+
+      document.getElementById("totalCount").textContent = total;
+      document.getElementById("completedCount").textContent = completed;
+      updateMiniMetrics(cachedTasks);
+
+      if (tasks.length === 0) {
+        emptyState.style.display = "flex";
+        return;
+      } else {
+        emptyState.style.display = "none";
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      tasks.forEach((task) => {
+        const li = document.createElement("li");
+        li.className = "task-item";
+
+        const mainDiv = document.createElement("div");
+        mainDiv.className = "task-main";
+
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = task.title;
+        titleSpan.className = "task-title";
+        if (task.completed) titleSpan.classList.add("completed");
+
+        const metaRow = document.createElement("div");
+        metaRow.className = "task-meta-row";
+
+        const deadlineSpan = document.createElement("span");
+        deadlineSpan.className = "deadline-label";
+
+        if (task.deadline) {
+          const d = new Date(task.deadline);
+          const deadlineDate = new Date(task.deadline);
+          deadlineDate.setHours(0, 0, 0, 0);
+
+          if (!task.completed) {
+            if (deadlineDate.getTime() === today.getTime()) {
+              deadlineSpan.classList.add("deadline-today");
+            } else if (deadlineDate.getTime() < today.getTime()) {
+              deadlineSpan.classList.add("deadline-overdue");
+            }
+          }
+
+          deadlineSpan.textContent = "Deadline: " + d.toLocaleDateString();
+        } else {
+          deadlineSpan.textContent = "Deadline: None";
+        }
+
+        const statusPill = document.createElement("span");
+        statusPill.className = "task-status-pill " + (task.completed ? "done" : "pending");
+        statusPill.textContent = task.completed ? "Done" : "Pending";
+
+        metaRow.appendChild(deadlineSpan);
+        metaRow.appendChild(statusPill);
+
+        mainDiv.appendChild(titleSpan);
+        mainDiv.appendChild(metaRow);
+
+        const btnDiv = document.createElement("div");
+        btnDiv.className = "task-actions";
+
+        const toggleBtn = document.createElement("button");
+        toggleBtn.textContent = task.completed ? "Mark incomplete" : "Mark done";
+        toggleBtn.className = "btn btn-small btn-outline";
+        toggleBtn.type = "button";
+        toggleBtn.onclick = () => toggleCompleted(task);
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.className = "btn btn-small btn-outline";
+        editBtn.type = "button";
+        editBtn.onclick = () => editTask(task);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.className = "btn btn-small btn-danger";
+        delBtn.type = "button";
+        delBtn.onclick = () => deleteTask(task);
+
+        btnDiv.appendChild(toggleBtn);
+        btnDiv.appendChild(editBtn);
+        btnDiv.appendChild(delBtn);
+
+        li.appendChild(mainDiv);
+        li.appendChild(btnDiv);
+        list.appendChild(li);
+      });
+    }
+
+    function updateMiniMetrics(tasks) {
+      const todayLabel = document.getElementById("metricToday");
+      const completedLabel = document.getElementById("metricCompleted");
+      const overdueLabel = document.getElementById("metricOverdue");
+
+      if (!Array.isArray(tasks)) {
+        todayLabel.textContent = "0";
+        completedLabel.textContent = "0";
+        overdueLabel.textContent = "0";
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let todayCount = 0;
+      let completedCount = 0;
+      let overdueCount = 0;
+
+      tasks.forEach((task) => {
+        if (task.completed) completedCount++;
+        if (!task.deadline || task.completed) return;
+        const deadlineDate = new Date(task.deadline);
+        deadlineDate.setHours(0, 0, 0, 0);
+        if (deadlineDate.getTime() === today.getTime()) todayCount++;
+        else if (deadlineDate.getTime() < today.getTime()) overdueCount++;
+      });
+
+      todayLabel.textContent = todayCount;
+      completedLabel.textContent = completedCount;
+      overdueLabel.textContent = overdueCount;
+    }
+
+    function checkDeadlines(tasks) {
+      if (!Array.isArray(tasks)) return;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      tasks.forEach((task) => {
+        if (!task.deadline || task.completed) return;
+        const deadlineDate = new Date(task.deadline);
+        deadlineDate.setHours(0, 0, 0, 0);
+        if (deadlineDate.getTime() === today.getTime()) {
+          showToast(`Task "${task.title}" is due today.`, "info");
+        } else if (deadlineDate.getTime() < today.getTime()) {
+          showToast(`Task "${task.title}" is overdue.`, "error");
+        }
+      });
+    }
+
+    async function addTask() {
+      const titleInput = document.getElementById("newTaskTitle");
+      const deadlineInput = document.getElementById("newTaskDeadline");
+      const title = titleInput.value.trim();
+      const deadline = deadlineInput.value;
+      if (!title || !token) {
+        if (!title) showToast("Please enter a task title.", "error");
+        return;
+      }
+      document.getElementById("addTaskBtn").disabled = true;
+      try {
+        const data = await apiFetch("/tasks", {
+          method: "POST",
+          body: JSON.stringify({ title, deadline }),
+        });
+        titleInput.value = "";
+        deadlineInput.value = "";
+        cachedTasks.push(data);
+        renderTasks();
+        showToast("Task added.", "success");
+      } catch (err) {
+        showToast("Failed to add task: " + err.message, "error");
+      } finally {
+        document.getElementById("addTaskBtn").disabled = false;
+      }
+    }
+
+    async function toggleCompleted(task) {
+      if (!token) return;
+      try {
+        const updated = await apiFetch("/tasks/" + task._id, {
+          method: "PUT",
+          body: JSON.stringify({ completed: !task.completed }),
+        });
+        cachedTasks = cachedTasks.map((t) => (t._id === task._id ? updated : t));
+        renderTasks();
+      } catch (err) {
+        showToast("Failed to update task: " + err.message, "error");
+      }
+    }
+
+    async function editTask(task) {
+      const newTitle = prompt("Edit task title:", task.title);
+      if (newTitle === null) return;
+      const trimmedTitle = newTitle.trim();
+      if (!trimmedTitle || !token) {
+        if (!trimmedTitle) showToast("Title cannot be empty.", "error");
+        return;
+      }
+      const newDeadline = prompt(
+        "Edit deadline (YYYY-MM-DD):",
+        task.deadline ? task.deadline.slice(0, 10) : ""
+      );
+      if (newDeadline === null) return;
+
+      try {
+        const updated = await apiFetch("/tasks/" + task._id, {
+          method: "PUT",
+          body: JSON.stringify({ title: trimmedTitle, deadline: newDeadline || null }),
+        });
+        cachedTasks = cachedTasks.map((t) => (t._id === task._id ? updated : t));
+        renderTasks();
+        showToast("Task updated.", "success");
+      } catch (err) {
+        showToast("Failed to edit task: " + err.message, "error");
+      }
+    }
+
+    async function deleteTask(task) {
+      if (!token) return;
+      const ok = confirm("Delete this task?");
+      if (!ok) return;
+      try {
+        await apiFetch("/tasks/" + task._id, { method: "DELETE" });
+        cachedTasks = cachedTasks.filter((t) => t._id !== task._id);
+        renderTasks();
+        showToast("Task deleted.", "info");
+      } catch (err) {
+        showToast("Failed to delete task: " + err.message, "error");
+      }
+    }
+
+    function restoreSession() {
+      const savedToken = localStorage.getItem("todo-token");
+      const savedUsername = localStorage.getItem("todo-username");
+      if (savedToken && savedUsername) {
+        token = savedToken;
+        currentUsername = savedUsername;
+        showTodo();
+      } else {
+        showAuth();
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadThemePreference();
+      restoreSession();
+    });
+  </script>
+</body>
+</html>
