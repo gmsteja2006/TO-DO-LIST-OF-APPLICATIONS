@@ -1,4 +1,4 @@
-// server.js - Final Master Code
+// api/index.js - Final Backend Code for Vercel
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -11,33 +11,17 @@ const app = express();
 
 // ====== Middleware ======
 app.use(express.json());
-
-// FIXED: This allows both versions of your Netlify URL (with and without the "a")
-app.use(
-  cors({
-    origin: [
-      "https://to-do-a-list-of-applications.netlify.app",
-      "https://to-do-list-of-applications.netlify.app"
-    ],
-    credentials: true,
-  })
-);
+app.use(cors()); // Permissive CORS for Vercel same-domain trust
 
 // ====== MongoDB Connection ======
 const MONGO_URI = process.env.MONGO_URI;
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(MONGO_URI);
-    console.log("✅ MongoDB connected:", conn.connection.host);
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error.message);
-    process.exit(1);
-  }
-};
-connectDB();
+// Connect to MongoDB Atlas
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Atlas connected"))
+  .catch(err => console.error("❌ MongoDB connection error:", err.message));
 
-// ====== Nodemailer transporter ======
+// ====== Nodemailer Configuration ======
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -46,53 +30,26 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-transporter.verify((err) => {
-  if (err) console.error("❌ Mail server error:", err.message);
-  else console.log("✅ Mail server ready");
-});
-
 // ====== Mongoose Models ======
-const userSchema = new mongoose.Schema({
+const User = mongoose.model("User", new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   email: { type: String, unique: true, required: true },
   passwordHash: { type: String, required: true },
-  otpCode: { type: String },
-  otpExpiresAt: { type: Date },
+  otpCode: String,
+  otpExpiresAt: Date,
   isVerified: { type: Boolean, default: false },
-});
+}));
 
-const User = mongoose.model("User", userSchema);
-
-const taskSchema = new mongoose.Schema(
-  {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    title: { type: String, required: true },
-    completed: { type: Boolean, default: false },
-    deadline: { type: Date },
-    notified: { type: Boolean, default: false },
-  },
-  { timestamps: true }
-);
-
-const Task = mongoose.model("Task", taskSchema);
-
-// ====== Helpers for OTP ======
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-async function sendOtpMail(toEmail, otp) {
-  const mailOptions = {
-    from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
-    to: toEmail,
-    subject: "Your verification code",
-    text: `Your verification code is ${otp}. It will expire in 5 minutes.`,
-  };
-  await transporter.sendMail(mailOptions);
-}
+const Task = mongoose.model("Task", new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  title: { type: String, required: true },
+  completed: { type: Boolean, default: false },
+  deadline: Date,
+  notified: { type: Boolean, default: false },
+}, { timestamps: true }));
 
 // ====== JWT Auth Middleware ======
-function authMiddleware(req, res, next) {
+const authMiddleware = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader) return res.status(401).json({ message: "No token provided" });
 
@@ -101,10 +58,10 @@ function authMiddleware(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({ message: "Invalid token" });
   }
-}
+};
 
 // ====== Auth Routes ======
 
@@ -116,8 +73,8 @@ app.post("/api/register", async (req, res) => {
     if (existing) return res.status(400).json({ message: "User already exists" });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const otp = generateOtp();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 300000); // 5 minutes
 
     const user = new User({
       username,
@@ -128,7 +85,13 @@ app.post("/api/register", async (req, res) => {
     });
     await user.save();
 
-    await sendOtpMail(email, otp);
+    await transporter.sendMail({
+      from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
+      to: email,
+      subject: "Your verification code",
+      text: `Your verification code is ${otp}. It will expire in 5 minutes.`,
+    });
+
     res.status(201).json({ message: "OTP sent", userId: user._id });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -157,11 +120,19 @@ app.post("/api/resend-otp", async (req, res) => {
   try {
     const { userId } = req.body;
     const user = await User.findById(userId);
-    const otp = generateOtp();
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.otpCode = otp;
     user.otpExpiresAt = new Date(Date.now() + 300000);
     await user.save();
-    await sendOtpMail(user.email, otp);
+
+    await transporter.sendMail({
+      from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
+      to: user.email,
+      subject: "Your verification code",
+      text: `Your new verification code is ${otp}.`,
+    });
     res.json({ message: "OTP resent" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -185,58 +156,54 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ====== Task Routes ======
+// ====== Task Routes (Protected) ======
 
 app.get("/api/tasks", authMiddleware, async (req, res) => {
-  const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
-  res.json(tasks);
+  try {
+    const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 app.post("/api/tasks", authMiddleware, async (req, res) => {
-  const task = new Task({ userId: req.userId, title: req.body.title, deadline: req.body.deadline });
-  await task.save();
-  res.status(201).json(task);
+  try {
+    const task = new Task({ 
+      userId: req.userId, 
+      title: req.body.title, 
+      deadline: req.body.deadline ? new Date(req.body.deadline) : undefined 
+    });
+    await task.save();
+    res.status(201).json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 app.put("/api/tasks/:id", authMiddleware, async (req, res) => {
-  const task = await Task.findOneAndUpdate(
-    { _id: req.params.id, userId: req.userId },
-    req.body,
-    { new: true }
-  );
-  res.json(task);
+  try {
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true }
+    );
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
-  await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  res.json({ message: "Deleted" });
+  try {
+    const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// ====== Email Scheduler ======
-async function checkDueTasks() {
-  const now = new Date();
-  const dueTasks = await Task.find({
-    deadline: { $lte: now },
-    completed: false,
-    notified: false,
-  }).populate("userId");
-
-  for (const task of dueTasks) {
-    const user = task.userId;
-    if (user && user.email) {
-      await transporter.sendMail({
-        from: process.env.MAIL_USER,
-        to: user.email,
-        subject: `⏰ Task due: ${task.title}`,
-        text: `Task "${task.title}" is due now.`,
-      });
-      task.notified = true;
-      await task.save();
-    }
-  }
-}
-setInterval(checkDueTasks, 60000);
-
-// ====== Start Server ======
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Export the app for Vercel
+module.exports = app;

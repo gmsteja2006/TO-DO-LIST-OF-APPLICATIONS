@@ -1,5 +1,5 @@
 // main.js - Final Master Frontend Code
-const APIBASE = "https://to-do-list-of-applications-production.up.railway.app/api";
+const APIBASE = "/api";
 
 let token = localStorage.getItem("todo-token") || null;
 let currentUsername = localStorage.getItem("todo-username") || null;
