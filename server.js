@@ -11,11 +11,11 @@ const nodemailer = require("nodemailer");
 const app = express();
 
 app.use(express.json());
-app.use(
-  cors({
-    origin: "*",
-  })
-);
+app.use(cors({ 
+  origin: "https://to-do-a-list-of-applications.netlify.app",
+  credentials: true 
+}));
+
 
 // ====== MongoDB ======
 const MONGO_URI =
