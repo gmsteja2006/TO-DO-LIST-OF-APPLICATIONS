@@ -220,6 +220,43 @@ app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// === Due‑task email notification job ===
+async function sendDueTaskEmails() {
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const dueTasks = await Task.find({
+      completed: false,
+      deadline: { $gte: startOfToday, $lte: endOfToday },
+      notified: false,
+    }).populate("userId");
+
+    for (const task of dueTasks) {
+      const user = task.userId;
+      if (!user || !user.email) continue;
+
+      await transporter.sendMail({
+        from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
+        to: user.email,
+        subject: `Task due: ${task.title}`,
+        text: `Your task "${task.title}" is due today. Please check your DAILY TASKS Workspace.`,
+      });
+
+      task.notified = true;
+      await task.save();
+    }
+  } catch (err) {
+    console.error("❌ Error in due‑task email job:", err.message);
+  }
+}
+
+// Run every 15 minutes
+setInterval(sendDueTaskEmails, 15 * 60 * 1000);
+
 // For local dev + Vercel
 const PORT = process.env.PORT || 5000;
 if (require.main === module) {
