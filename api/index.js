@@ -1,4 +1,5 @@
-// api/index.js - Final Backend Code for Vercel
+// api/index.js - Backend for Vercel
+
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -9,19 +10,19 @@ const nodemailer = require("nodemailer");
 
 const app = express();
 
-// ====== Middleware ======
+// Middleware
 app.use(express.json());
-app.use(cors()); // Permissive CORS for Vercel same-domain trust
+app.use(cors());
 
-// ====== MongoDB Connection ======
+// MongoDB
 const MONGO_URI = process.env.MONGO_URI;
 
-// Connect to MongoDB Atlas
-mongoose.connect(MONGO_URI)
+mongoose
+  .connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Atlas connected"))
-  .catch(err => console.error("❌ MongoDB connection error:", err.message));
+  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
 
-// ====== Nodemailer Configuration ======
+// Mailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -30,25 +31,34 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ====== Mongoose Models ======
-const User = mongoose.model("User", new mongoose.Schema({
-  username: { type: String, unique: true, required: true },
-  email: { type: String, unique: true, required: true },
-  passwordHash: { type: String, required: true },
-  otpCode: String,
-  otpExpiresAt: Date,
-  isVerified: { type: Boolean, default: false },
-}));
+// Models
+const User = mongoose.model(
+  "User",
+  new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    email: { type: String, unique: true, required: true },
+    passwordHash: { type: String, required: true },
+    otpCode: String,
+    otpExpiresAt: Date,
+    isVerified: { type: Boolean, default: false },
+  })
+);
 
-const Task = mongoose.model("Task", new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  title: { type: String, required: true },
-  completed: { type: Boolean, default: false },
-  deadline: Date,
-  notified: { type: Boolean, default: false },
-}, { timestamps: true }));
+const Task = mongoose.model(
+  "Task",
+  new mongoose.Schema(
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      title: { type: String, required: true },
+      completed: { type: Boolean, default: false },
+      deadline: Date,
+      notified: { type: Boolean, default: false },
+    },
+    { timestamps: true }
+  )
+);
 
-// ====== JWT Auth Middleware ======
+// Auth middleware
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader) return res.status(401).json({ message: "No token provided" });
@@ -63,9 +73,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// ====== Auth Routes ======
-
-// Register
+// Auth routes
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -74,7 +82,7 @@ app.post("/api/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 300000); // 5 minutes
+    const expires = new Date(Date.now() + 300000);
 
     const user = new User({
       username,
@@ -98,7 +106,6 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Verify email
 app.post("/api/verify-email", async (req, res) => {
   try {
     const { userId, otp } = req.body;
@@ -115,7 +122,6 @@ app.post("/api/verify-email", async (req, res) => {
   }
 });
 
-// Resend OTP
 app.post("/api/resend-otp", async (req, res) => {
   try {
     const { userId } = req.body;
@@ -133,31 +139,37 @@ app.post("/api/resend-otp", async (req, res) => {
       subject: "Your verification code",
       text: `Your new verification code is ${otp}.`,
     });
+
     res.json({ message: "OTP resent" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Login
 app.post("/api/login", async (req, res) => {
   try {
     const { identifier, password } = req.body;
-    const user = await User.findOne({ $or: [{ username: identifier }, { email: identifier }] });
+    const user = await User.findOne({
+      $or: [{ username: identifier }, { email: identifier }],
+    });
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    if (!user.isVerified) return res.status(403).json({ message: "Verify email first" });
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "Verify email first" });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
     res.json({ token, user: { username: user.username } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ====== Task Routes (Protected) ======
-
+// Task routes
 app.get("/api/tasks", authMiddleware, async (req, res) => {
   try {
     const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
@@ -169,10 +181,10 @@ app.get("/api/tasks", authMiddleware, async (req, res) => {
 
 app.post("/api/tasks", authMiddleware, async (req, res) => {
   try {
-    const task = new Task({ 
-      userId: req.userId, 
-      title: req.body.title, 
-      deadline: req.body.deadline ? new Date(req.body.deadline) : undefined 
+    const task = new Task({
+      userId: req.userId,
+      title: req.body.title,
+      deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
     });
     await task.save();
     res.status(201).json(task);
@@ -197,7 +209,10 @@ app.put("/api/tasks/:id", authMiddleware, async (req, res) => {
 
 app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    const task = await Task.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId,
+    });
     if (!task) return res.status(404).json({ message: "Task not found" });
     res.json({ message: "Deleted" });
   } catch (err) {
@@ -205,5 +220,9 @@ app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// Export the app for Vercel
+// For local dev + Vercel
+const PORT = process.env.PORT || 5000;
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}
 module.exports = app;

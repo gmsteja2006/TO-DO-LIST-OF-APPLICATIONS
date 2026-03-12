@@ -1,5 +1,6 @@
-// main.js - Final Master Frontend Code
-const APIBASE = "/api"; 
+// main.js - Frontend
+
+const APIBASE = "/api";
 
 let token = localStorage.getItem("todo-token") || null;
 let currentUsername = localStorage.getItem("todo-username") || null;
@@ -9,16 +10,14 @@ let currentFilter = "all";
 let cachedTasks = [];
 let pendingUserId = null;
 
-// ---------- Theme handling ----------
+// Theme
 function applyTheme() {
   const body = document.body;
   const toggle = document.querySelector(".theme-toggle");
   if (!toggle) return;
   const icon = toggle.querySelector(".icon");
   const label = toggle.querySelector(".label");
-
   body.setAttribute("data-theme", isDark ? "dark" : "light");
-
   if (isDark) {
     if (icon) icon.textContent = "🌙";
     if (label) label.textContent = "Dark";
@@ -34,7 +33,7 @@ function toggleTheme() {
   applyTheme();
 }
 
-// ---------- Toasts ----------
+// Toasts
 function showToast(message, type = "info", duration = 2600) {
   const container = document.getElementById("toastContainer");
   if (!container) return;
@@ -49,7 +48,7 @@ function showToast(message, type = "info", duration = 2600) {
   }, duration);
 }
 
-// ---------- API helper ----------
+// API helper
 async function apiFetch(path, options = {}) {
   const finalOptions = {
     ...options,
@@ -59,7 +58,6 @@ async function apiFetch(path, options = {}) {
     },
   };
   if (token) finalOptions.headers["Authorization"] = "Bearer " + token;
-
   const res = await fetch(APIBASE + path, finalOptions);
   let data;
   try {
@@ -71,7 +69,7 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
-// ---------- Auth helpers ----------
+// Auth helpers
 function setAuthMessage(text, type) {
   const el = document.getElementById("authMessage");
   if (!el) return;
@@ -91,8 +89,7 @@ function setOtpMessage(text, type) {
 }
 
 function toggleAuthLoading(isLoading) {
-  const btns = ["registerBtn", "loginBtn", "verifyOtpBtn", "resendOtpBtn"];
-  btns.forEach(id => {
+  ["registerBtn", "loginBtn", "verifyOtpBtn", "resendOtpBtn"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.disabled = isLoading;
   });
@@ -104,7 +101,7 @@ function prefillDemoUser() {
   document.getElementById("regPassword").value = "Demo@123";
 }
 
-// ---------- Auth actions ----------
+// Auth actions
 async function handleRegister(event) {
   event.preventDefault();
   const username = document.getElementById("regUsername").value.trim();
@@ -113,13 +110,11 @@ async function handleRegister(event) {
   setAuthMessage("", "");
   setOtpMessage("", "");
   toggleAuthLoading(true);
-
   if (!username || !email || !password) {
     setAuthMessage("Username, email and password are required.", "error");
     toggleAuthLoading(false);
     return;
   }
-
   try {
     const data = await apiFetch("/register", {
       method: "POST",
@@ -146,7 +141,7 @@ async function handleVerifyOtp() {
   }
   toggleAuthLoading(true);
   try {
-    await apiFetch("/verify-email", { // Fixed endpoint
+    await apiFetch("/verify-email", {
       method: "POST",
       body: JSON.stringify({ userId: pendingUserId, otp }),
     });
@@ -182,7 +177,6 @@ async function handleLogin(event) {
   const password = document.getElementById("loginPassword").value.trim();
   setAuthMessage("", "");
   toggleAuthLoading(true);
-
   try {
     const data = await apiFetch("/login", {
       method: "POST",
@@ -201,7 +195,7 @@ async function handleLogin(event) {
   }
 }
 
-// ---------- Session view handling ----------
+// Session views
 function logout() {
   token = null;
   currentUsername = null;
@@ -225,7 +219,7 @@ function showTodo() {
   }
 }
 
-// ---------- Task actions ----------
+// Tasks
 async function loadTasks() {
   if (!token) return;
   try {
@@ -240,7 +234,7 @@ async function loadTasks() {
 
 function setFilter(f) {
   currentFilter = f;
-  document.querySelectorAll(".chip-btn").forEach(b => {
+  document.querySelectorAll(".chip-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.filter === f);
   });
   renderTasks();
@@ -259,79 +253,108 @@ async function addTask() {
     cachedTasks.unshift(t);
     renderTasks();
     showToast("Added", "success");
-  } catch (err) { showToast(err.message, "error"); }
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 }
 
 async function toggleCompleted(task) {
   try {
-    const updated = await apiFetch(`/tasks/${task._id}`, { // Fixed .id to ._id
+    const updated = await apiFetch(`/tasks/${task._id}`, {
       method: "PUT",
       body: JSON.stringify({ completed: !task.completed }),
     });
-    cachedTasks = cachedTasks.map(t => t._id === task._id ? updated : t);
+    cachedTasks = cachedTasks.map((t) => (t._id === task._id ? updated : t));
     renderTasks();
-  } catch (err) { showToast(err.message, "error"); }
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 }
 
 async function deleteTask(task) {
   if (!confirm("Delete?")) return;
   try {
-    await apiFetch(`/tasks/${task._id}`, { method: "DELETE" }); // Fixed .id to ._id
-    cachedTasks = cachedTasks.filter(t => t._id !== task._id);
+    await apiFetch(`/tasks/${task._id}`, { method: "DELETE" });
+    cachedTasks = cachedTasks.filter((t) => t._id !== task._id);
     renderTasks();
-  } catch (err) { showToast(err.message, "error"); }
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 }
 
 function renderTasks() {
   const list = document.getElementById("taskList");
   list.innerHTML = "";
-  const filtered = cachedTasks.filter(t => {
+  const filtered = cachedTasks.filter((t) => {
     if (currentFilter === "pending") return !t.completed;
     if (currentFilter === "completed") return t.completed;
     return true;
   });
-
   document.getElementById("totalCount").textContent = cachedTasks.length;
-  document.getElementById("completedCount").textContent = cachedTasks.filter(t => t.completed).length;
+  document.getElementById("completedCount").textContent = cachedTasks.filter(
+    (t) => t.completed
+  ).length;
   updateMiniMetrics(cachedTasks);
-
-  filtered.forEach(task => {
+  filtered.forEach((task) => {
     const li = document.createElement("li");
     li.className = "task-item";
     li.innerHTML = `
       <div class="task-main">
-        <span class="task-title ${task.completed ? 'completed' : ''}">${task.title}</span>
-        <div class="task-meta-row">
-          <span class="deadline-label">Deadline: ${task.deadline ? new Date(task.deadline).toLocaleDateString() : 'None'}</span>
-          <span class="task-status-pill ${task.completed ? 'done' : 'pending'}">${task.completed ? 'Done' : 'Pending'}</span>
-        </div>
+        <span class="task-title ${task.completed ? "completed" : ""}">
+          ${task.title}
+        </span>
       </div>
       <div class="task-actions">
-        <button class="btn btn-small btn-outline" onclick='toggleCompleted(${JSON.stringify(task)})'>${task.completed ? 'Undo' : 'Done'}</button>
-        <button class="btn btn-small btn-danger" onclick='deleteTask(${JSON.stringify(task)})'>Delete</button>
+        <button class="btn btn-small btn-outline" type="button">Toggle</button>
+        <button class="btn btn-small btn-danger" type="button">Delete</button>
       </div>
     `;
+    const [toggleBtn, delBtn] = li.querySelectorAll("button");
+    toggleBtn.onclick = () => toggleCompleted(task);
+    delBtn.onclick = () => deleteTask(task);
     list.appendChild(li);
   });
 }
 
 function updateMiniMetrics(tasks) {
-  const today = new Date().setHours(0,0,0,0);
-  document.getElementById("metricToday").textContent = tasks.filter(t => t.deadline && new Date(t.deadline).setHours(0,0,0,0) === today && !t.completed).length;
-  document.getElementById("metricCompleted").textContent = tasks.filter(t => t.completed).length;
-  document.getElementById("metricOverdue").textContent = tasks.filter(t => t.deadline && new Date(t.deadline).setHours(0,0,0,0) < today && !t.completed).length;
+  document.getElementById("metricToday").textContent = tasks.length;
+  document.getElementById("metricCompleted").textContent = tasks.filter(
+    (t) => t.completed
+  ).length;
+  document.getElementById("metricOverdue").textContent = tasks.filter(
+    (t) => !t.completed && t.deadline && new Date(t.deadline) < new Date()
+  ).length;
 }
 
 function checkDeadlines(tasks) {
-  const today = new Date().setHours(0,0,0,0);
-  tasks.forEach(t => {
-    if (!t.completed && t.deadline && new Date(t.deadline).setHours(0,0,0,0) === today) {
-      showToast(`Task "${t.title}" is due today!`, "warning");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  tasks.forEach((t) => {
+    if (!t.deadline || t.completed) return;
+    const d = new Date(t.deadline);
+    d.setHours(0, 0, 0, 0);
+    if (d.getTime() === today.getTime()) {
+      showToast(`Task ${t.title} is due today!`, "warning");
+    } else if (d.getTime() < today.getTime()) {
+      showToast(`Task ${t.title} is overdue.`, "error");
     }
   });
 }
 
+// Session restore
+function restoreSession() {
+  const savedToken = localStorage.getItem("todo-token");
+  const savedUsername = localStorage.getItem("todo-username");
+  if (savedToken && savedUsername) {
+    token = savedToken;
+    currentUsername = savedUsername;
+    showTodo();
+  } else {
+    showAuth();
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   applyTheme();
-  if (token) showTodo(); else showAuth();
+  restoreSession();
 });
