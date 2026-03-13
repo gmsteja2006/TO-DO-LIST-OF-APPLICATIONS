@@ -254,8 +254,20 @@ async function sendDueTaskEmails() {
   }
 }
 
-// Run every 15 minutes
-setInterval(sendDueTaskEmails, 15 * 60 * 1000);
+// Endpoint for Vercel Cron / manual trigger
+app.post("/api/run-due-task-job", async (req, res) => {
+  try {
+    await sendDueTaskEmails();
+    res.json({ message: "Due-task job executed" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Optional: run every 15 minutes ONLY in local dev
+if (process.env.NODE_ENV !== "production") {
+  setInterval(sendDueTaskEmails, 15 * 60 * 1000);
+}
 
 // For local dev + Vercel
 const PORT = process.env.PORT || 5000;
