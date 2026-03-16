@@ -17,7 +17,9 @@ function applyTheme() {
   if (!toggle) return;
   const icon = toggle.querySelector(".icon");
   const label = toggle.querySelector(".label");
+
   body.setAttribute("data-theme", isDark ? "dark" : "light");
+
   if (isDark) {
     if (icon) icon.textContent = "🌙";
     if (label) label.textContent = "Dark";
@@ -37,10 +39,13 @@ function toggleTheme() {
 function showToast(message, type = "info", duration = 2600) {
   const container = document.getElementById("toastContainer");
   if (!container) return;
+
   const toast = document.createElement("div");
   toast.className = "toast " + type;
   toast.textContent = message;
+
   container.appendChild(toast);
+
   setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(4px)";
@@ -57,15 +62,20 @@ async function apiFetch(path, options = {}) {
       ...(options.headers || {}),
     },
   };
+
   if (token) finalOptions.headers["Authorization"] = "Bearer " + token;
+
   const res = await fetch(APIBASE + path, finalOptions);
+
   let data;
   try {
     data = await res.json();
   } catch {
     data = {};
   }
+
   if (!res.ok) throw new Error(data.message || "Request failed");
+
   return data;
 }
 
@@ -73,8 +83,10 @@ async function apiFetch(path, options = {}) {
 function setAuthMessage(text, type) {
   const el = document.getElementById("authMessage");
   if (!el) return;
+
   el.textContent = text || "";
   el.className = "";
+
   if (!text) return;
   el.classList.add(type === "error" ? "error" : "success");
 }
@@ -82,8 +94,10 @@ function setAuthMessage(text, type) {
 function setOtpMessage(text, type) {
   const el = document.getElementById("otpMessage");
   if (!el) return;
+
   el.textContent = text || "";
   el.className = "";
+
   if (!text) return;
   el.classList.add(type === "error" ? "error" : "success");
 }
@@ -104,25 +118,32 @@ function prefillDemoUser() {
 // Auth actions
 async function handleRegister(event) {
   event.preventDefault();
+
   const username = document.getElementById("regUsername").value.trim();
   const email = document.getElementById("regEmail").value.trim();
   const password = document.getElementById("regPassword").value.trim();
+
   setAuthMessage("", "");
   setOtpMessage("", "");
   toggleAuthLoading(true);
+
   if (!username || !email || !password) {
     setAuthMessage("Username, email and password are required.", "error");
     toggleAuthLoading(false);
     return;
   }
+
   try {
     const data = await apiFetch("/register", {
       method: "POST",
       body: JSON.stringify({ username, email, password }),
     });
+
     pendingUserId = data.userId;
+
     document.getElementById("otpSection").style.display = "block";
     document.getElementById("resendOtpBtn").style.display = "inline-flex";
+
     setAuthMessage("Account created. Check email for OTP.", "success");
     showToast("OTP sent to your email.", "success");
   } catch (err) {
@@ -135,16 +156,20 @@ async function handleRegister(event) {
 async function handleVerifyOtp() {
   const otp = document.getElementById("otpInput").value.trim();
   setOtpMessage("", "");
+
   if (!otp || !pendingUserId) {
     setOtpMessage("Missing OTP or user.", "error");
     return;
   }
+
   toggleAuthLoading(true);
+
   try {
     await apiFetch("/verify-email", {
       method: "POST",
       body: JSON.stringify({ userId: pendingUserId, otp }),
     });
+
     setOtpMessage("Email verified! You can sign in now.", "success");
     showToast("Verified! Please Login.", "success");
   } catch (err) {
@@ -156,12 +181,15 @@ async function handleVerifyOtp() {
 
 async function resendOtp() {
   if (!pendingUserId) return;
+
   toggleAuthLoading(true);
+
   try {
     await apiFetch("/resend-otp", {
       method: "POST",
       body: JSON.stringify({ userId: pendingUserId }),
     });
+
     setOtpMessage("OTP resent to email.", "success");
     showToast("OTP resent.", "info");
   } catch (err) {
@@ -173,19 +201,25 @@ async function resendOtp() {
 
 async function handleLogin(event) {
   if (event) event.preventDefault();
+
   const identifier = document.getElementById("loginIdentifier").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
+
   setAuthMessage("", "");
   toggleAuthLoading(true);
+
   try {
     const data = await apiFetch("/login", {
       method: "POST",
       body: JSON.stringify({ identifier, password }),
     });
+
     token = data.token;
     currentUsername = data.user.username;
+
     localStorage.setItem("todo-token", token);
     localStorage.setItem("todo-username", currentUsername);
+
     showTodo();
     showToast("Logged in.", "success");
   } catch (err) {
@@ -242,14 +276,19 @@ function setFilter(f) {
 
 async function addTask() {
   const title = document.getElementById("newTaskTitle").value.trim();
-  const deadline = document.getElementById("newTaskDeadline").value;
+  const deadline = document.getElementById("newTaskDeadline").value; // datetime-local string
+
   if (!title) return showToast("Enter title", "error");
+
   try {
     const t = await apiFetch("/tasks", {
       method: "POST",
       body: JSON.stringify({ title, deadline }),
     });
+
     document.getElementById("newTaskTitle").value = "";
+    document.getElementById("newTaskDeadline").value = "";
+
     cachedTasks.unshift(t);
     renderTasks();
     showToast("Added", "success");
@@ -285,76 +324,88 @@ async function deleteTask(task) {
 function renderTasks() {
   const list = document.getElementById("taskList");
   list.innerHTML = "";
+
   const filtered = cachedTasks.filter((t) => {
     if (currentFilter === "pending") return !t.completed;
     if (currentFilter === "completed") return t.completed;
     return true;
   });
+
   document.getElementById("totalCount").textContent = cachedTasks.length;
   document.getElementById("completedCount").textContent = cachedTasks.filter(
     (t) => t.completed
   ).length;
+
   updateMiniMetrics(cachedTasks);
+
   filtered.forEach((task) => {
     const li = document.createElement("li");
     li.className = "task-item";
+
+    const deadlineText = task.deadline
+      ? new Date(task.deadline).toLocaleString()
+      : "No deadline";
+
     li.innerHTML = `
       <div class="task-main">
-        <span class="task-title ${task.completed ? "completed" : ""}">
-          ${task.title}
-        </span>
+        <label class="checkbox-row">
+          <input type="checkbox" ${task.completed ? "checked" : ""} />
+          <span class="task-title ${task.completed ? "done" : ""}">
+            ${task.title}
+          </span>
+        </label>
+        <div class="task-meta">
+          <span class="task-deadline">${deadlineText}</span>
+        </div>
       </div>
       <div class="task-actions">
-        <button class="btn btn-small btn-outline" type="button">Toggle</button>
-        <button class="btn btn-small btn-danger" type="button">Delete</button>
+        <button class="btn small ghost delete-btn">Delete</button>
       </div>
     `;
-    const [toggleBtn, delBtn] = li.querySelectorAll("button");
-    toggleBtn.onclick = () => toggleCompleted(task);
-    delBtn.onclick = () => deleteTask(task);
+
+    const checkbox = li.querySelector("input[type='checkbox']");
+    const deleteBtn = li.querySelector(".delete-btn");
+
+    checkbox.addEventListener("change", () => toggleCompleted(task));
+    deleteBtn.addEventListener("click", () => deleteTask(task));
+
     list.appendChild(li);
   });
 }
 
 function updateMiniMetrics(tasks) {
-  document.getElementById("metricToday").textContent = tasks.length;
-  document.getElementById("metricCompleted").textContent = tasks.filter(
-    (t) => t.completed
-  ).length;
-  document.getElementById("metricOverdue").textContent = tasks.filter(
-    (t) => !t.completed && t.deadline && new Date(t.deadline) < new Date()
-  ).length;
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  let focus = 0;
+  let overdue = 0;
+
+  tasks.forEach((t) => {
+    if (!t.deadline) return;
+
+    const d = new Date(t.deadline);
+    if (!t.completed && d >= todayStart && d < todayEnd) focus++;
+    if (!t.completed && d < todayStart) overdue++;
+  });
+
+  document.getElementById("focusCount").textContent = focus;
+  document.getElementById("overdueCount").textContent = overdue;
 }
 
 function checkDeadlines(tasks) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  tasks.forEach((t) => {
-    if (!t.deadline || t.completed) return;
-    const d = new Date(t.deadline);
-    d.setHours(0, 0, 0, 0);
-    if (d.getTime() === today.getTime()) {
-      showToast(`Task ${t.title} is due today!`, "warning");
-    } else if (d.getTime() < today.getTime()) {
-      showToast(`Task ${t.title} is overdue.`, "error");
-    }
-  });
+  // Client-side optional reminders / highlighting only (no email)
+  // You can extend this if needed, but email is handled on the server.
 }
 
-// Session restore
-function restoreSession() {
-  const savedToken = localStorage.getItem("todo-token");
-  const savedUsername = localStorage.getItem("todo-username");
-  if (savedToken && savedUsername) {
-    token = savedToken;
-    currentUsername = savedUsername;
+// Init
+window.addEventListener("DOMContentLoaded", () => {
+  applyTheme();
+  if (token && currentUsername) {
     showTodo();
   } else {
     showAuth();
   }
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  applyTheme();
-  restoreSession();
 });

@@ -882,7 +882,8 @@
             <input id="newTaskTitle" type="text" placeholder="What do you need to ship?" />
             <div>
               <label for="newTaskDeadline">Deadline</label>
-              <input id="newTaskDeadline" type="date" />
+              <!-- CHANGED: date -> datetime-local -->
+              <input id="newTaskDeadline" type="datetime-local" />
             </div>
           </div>
 
@@ -1095,7 +1096,6 @@
       setAuthMessage("", "");
       setOtpMessage("", "");
       toggleAuthLoading(true);
-
       if (!username || !email || !password) {
         setAuthMessage("Username, email and password are required.", "error");
         toggleAuthLoading(false);
@@ -1238,7 +1238,6 @@
       document.getElementById("welcomeUser").innerText =
         `Welcome back, ${currentUsername || "there"}.`;
       loadTasks();
-
       if (!deadlineCheckIntervalId) {
         deadlineCheckIntervalId = setInterval(async () => {
           if (!token) return;
