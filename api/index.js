@@ -31,6 +31,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Optional: verify transporter at startup (will log in Vercel function logs)
+transporter.verify((error) => {
+  if (error) {
+    console.log("Email transporter error:", error);
+  } else {
+    console.log("Email transporter ready");
+  }
+});
+
 // Models
 const User = mongoose.model(
   "User",
@@ -189,7 +198,7 @@ app.post("/api/tasks", authMiddleware, async (req, res) => {
     const task = new Task({
       userId: req.userId,
       title: req.body.title,
-      deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
+      deadline: req.body.deadline ? new Date(req.body.deadline) : null,
     });
     await task.save();
     res.status(201).json(task);
@@ -229,52 +238,56 @@ app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
 });
 
 // === Due‑task email notification job ===
+// Logic aligned with offline server.js (today vs tomorrow window)
 async function sendDueTaskEmails() {
   try {
+    console.log("Running due-task job...");
+
+    // Get all not-completed, not-notified tasks
+    const tasks = await Task.find({ completed: false, notified: false });
+    console.log("Tasks found:", tasks.length);
+
     const now = new Date();
-    console.log("Running due-task job at", now.toISOString());
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
 
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date(now);
-    endOfToday.setHours(23, 59, 59, 999);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    console.log("Start of today:", startOfToday.toISOString());
-    console.log("End of today:", endOfToday.toISOString());
+    for (const task of tasks) {
+      if (!task.deadline) continue;
 
-    // Notify tasks with deadline up to end of today, not completed, not notified
-    const dueTasks = await Task.find({
-      completed: false,
-      deadline: { $lte: endOfToday },
-      notified: false,
-    }).populate("userId");
+      const deadline = new Date(task.deadline);
 
-    console.log("Found due tasks count:", dueTasks.length);
+      console.log("Task:", task.title);
+      console.log("Deadline:", deadline.toISOString());
 
-    for (const task of dueTasks) {
-      const user = task.userId;
-      if (!user || !user.email) {
-        console.log("Skipping task without valid user/email:", task._id.toString());
-        continue;
+      // Same logic as offline project: deadline is today
+      if (deadline >= today && deadline < tomorrow) {
+        console.log("Task due today:", task.title);
+
+        // task.userId is a ref to User
+        const user = await User.findById(task.userId);
+        if (!user || !user.email) {
+          console.log("User not found or no email for task", task._id.toString());
+          continue;
+        }
+
+        console.log("Sending email to:", user.email);
+
+        await transporter.sendMail({
+          from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
+          to: user.email,
+          subject: "Task Due Today",
+          text: `Reminder: Task "${task.title}" is due today`,
+        });
+
+        // Mark as notified so we don't spam
+        task.notified = true;
+        await task.save();
+
+        console.log("Reminder email sent for task", task._id.toString());
       }
-
-      console.log(
-        "Sending due-task email for task",
-        task._id.toString(),
-        "to",
-        user.email
-      );
-
-      await transporter.sendMail({
-        from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
-        to: user.email,
-        subject: `Task due: ${task.title}`,
-        text: `Your task "${task.title}" is due on ${task.deadline?.toDateString()}. Please check your DAILY TASKS Workspace.`,
-      });
-
-      task.notified = true;
-      await task.save();
-      console.log("Marked task as notified:", task._id.toString());
     }
   } catch (err) {
     console.error("❌ Error in due‑task email job:", err);
