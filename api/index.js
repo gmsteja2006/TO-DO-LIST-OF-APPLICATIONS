@@ -102,6 +102,7 @@ app.post("/api/register", async (req, res) => {
 
     res.status(201).json({ message: "OTP sent", userId: user._id });
   } catch (err) {
+    console.error("Register error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -118,6 +119,7 @@ app.post("/api/verify-email", async (req, res) => {
     await user.save();
     res.json({ message: "Email verified successfully" });
   } catch (err) {
+    console.error("Verify email error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -142,6 +144,7 @@ app.post("/api/resend-otp", async (req, res) => {
 
     res.json({ message: "OTP resent" });
   } catch (err) {
+    console.error("Resend OTP error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -165,6 +168,7 @@ app.post("/api/login", async (req, res) => {
 
     res.json({ token, user: { username: user.username } });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -175,6 +179,7 @@ app.get("/api/tasks", authMiddleware, async (req, res) => {
     const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
     res.json(tasks);
   } catch (err) {
+    console.error("Get tasks error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -189,6 +194,7 @@ app.post("/api/tasks", authMiddleware, async (req, res) => {
     await task.save();
     res.status(201).json(task);
   } catch (err) {
+    console.error("Create task error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -203,6 +209,7 @@ app.put("/api/tasks/:id", authMiddleware, async (req, res) => {
     if (!task) return res.status(404).json({ message: "Task not found" });
     res.json(task);
   } catch (err) {
+    console.error("Update task error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -216,6 +223,7 @@ app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
     if (!task) return res.status(404).json({ message: "Task not found" });
     res.json({ message: "Deleted" });
   } catch (err) {
+    console.error("Delete task error:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -224,42 +232,63 @@ app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
 async function sendDueTaskEmails() {
   try {
     const now = new Date();
+    console.log("Running due-task job at", now.toISOString());
+
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
 
+    console.log("Start of today:", startOfToday.toISOString());
+    console.log("End of today:", endOfToday.toISOString());
+
+    // Notify tasks with deadline up to end of today, not completed, not notified
     const dueTasks = await Task.find({
       completed: false,
-      deadline: { $gte: startOfToday, $lte: endOfToday },
+      deadline: { $lte: endOfToday },
       notified: false,
     }).populate("userId");
 
+    console.log("Found due tasks count:", dueTasks.length);
+
     for (const task of dueTasks) {
       const user = task.userId;
-      if (!user || !user.email) continue;
+      if (!user || !user.email) {
+        console.log("Skipping task without valid user/email:", task._id.toString());
+        continue;
+      }
+
+      console.log(
+        "Sending due-task email for task",
+        task._id.toString(),
+        "to",
+        user.email
+      );
 
       await transporter.sendMail({
         from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
         to: user.email,
         subject: `Task due: ${task.title}`,
-        text: `Your task "${task.title}" is due today. Please check your DAILY TASKS Workspace.`,
+        text: `Your task "${task.title}" is due on ${task.deadline?.toDateString()}. Please check your DAILY TASKS Workspace.`,
       });
 
       task.notified = true;
       await task.save();
+      console.log("Marked task as notified:", task._id.toString());
     }
   } catch (err) {
-    console.error("❌ Error in due‑task email job:", err.message);
+    console.error("❌ Error in due‑task email job:", err);
   }
 }
 
 // Endpoint for Vercel Cron / manual trigger
 app.post("/api/run-due-task-job", async (req, res) => {
+  console.log("Received /api/run-due-task-job trigger (POST)");
   try {
     await sendDueTaskEmails();
     res.json({ message: "Due-task job executed" });
   } catch (err) {
+    console.error("Error while running due-task job endpoint:", err);
     res.status(500).json({ message: err.message });
   }
 });
