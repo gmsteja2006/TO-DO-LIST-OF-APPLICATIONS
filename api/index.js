@@ -255,7 +255,8 @@ async function sendDueTaskEmails() {
 }
 
 // Endpoint for Vercel Cron / manual trigger
-app.post("/api/run-due-task-job", async (req, res) => {
+app.get("/api/run-due-task-job", async (req, res) => {
+
   try {
     await sendDueTaskEmails();
     res.json({ message: "Due-task job executed" });
