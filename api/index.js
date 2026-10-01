@@ -15,8 +15,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "../public")));
 
 if (!supabase) {
-  console.error("❌ Supabase client failed to initialize. Check SUPABASE_URL and SUPABASE_KEY in .env");
-  process.exit(1);
+  console.error("❌ Supabase client failed to initialize. Check SUPABASE_URL and SUPABASE_KEY in environment variables");
 }
 
 console.log("🚀 Database: Supabase PostgreSQL");
