@@ -372,6 +372,7 @@ function renderSessionState() {
     DOM.authSection.style.display = 'none';
     DOM.dashboardSection.style.display = 'flex';
     DOM.navProfile.style.display = 'flex';
+    DOM.logoutBtn.style.display = 'inline-flex';
 
     DOM.userAvatar.textContent = (state.user.username || 'U')[0].toUpperCase();
     DOM.userNameDisplay.textContent = state.user.username;
@@ -387,6 +388,7 @@ function renderSessionState() {
     DOM.authSection.style.display = 'grid';
     DOM.dashboardSection.style.display = 'none';
     DOM.navProfile.style.display = 'none';
+    DOM.logoutBtn.style.display = 'none';
     switchAuthTab('login');
   }
 }
