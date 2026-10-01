@@ -1,26 +1,25 @@
-// api/index.js - Backend for Vercel
-
+// api/index.js — Aura TaskFlow Backend (Supabase PostgreSQL)
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const path = require("path");
+const supabase = require("./supabase");
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(cors());
+app.use(express.static(path.join(__dirname, "../public")));
 
-// MongoDB
-const MONGO_URI = process.env.MONGO_URI;
+if (!supabase) {
+  console.error("❌ Supabase client failed to initialize. Check SUPABASE_URL and SUPABASE_KEY in .env");
+  process.exit(1);
+}
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB Atlas connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
+console.log("🚀 Database: Supabase PostgreSQL");
 
 // Mailer
 const transporter = nodemailer.createTransport({
@@ -31,248 +30,338 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Models
-const User = mongoose.model(
-  "User",
-  new mongoose.Schema({
-    username: { type: String, unique: true, required: true },
-    email: { type: String, unique: true, required: true },
-    passwordHash: { type: String, required: true },
-    otpCode: String,
-    otpExpiresAt: Date,
-    isVerified: { type: Boolean, default: false },
-  })
-);
-
-const Task = mongoose.model(
-  "Task",
-  new mongoose.Schema(
-    {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-      title: { type: String, required: true },
-      completed: { type: Boolean, default: false },
-      deadline: Date,
-      notified: { type: Boolean, default: false },
-    },
-    { timestamps: true }
-  )
-);
-
-// Auth middleware
+// Auth Middleware
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader) return res.status(401).json({ message: "No token provided" });
-
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+  } catch {
+    return res.status(401).json({ message: "Invalid or expired session token" });
   }
 };
 
-// Auth routes
+// Normalize Supabase task fields to frontend format
+const normalizeTask = (t) => ({
+  _id: t.id,
+  id: t.id,
+  userId: t.user_id,
+  title: t.title,
+  completed: t.completed,
+  deadline: t.deadline,
+  notified: t.notified,
+  createdAt: t.created_at,
+  updatedAt: t.updated_at,
+});
+
+// ==============================================================================
+// AUTH ROUTES
+// ==============================================================================
+
+// POST /api/register
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    const existing = await User.findOne({ $or: [{ username }, { email }] });
-    if (existing) return res.status(400).json({ message: "User already exists" });
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Username, email and password are required" });
+    }
+
+    // Check existing user
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id")
+      .or(`username.eq.${username},email.eq.${email}`)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ message: "User with this username or email already exists" });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 300000);
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    const user = new User({
-      username,
-      email,
-      passwordHash,
-      otpCode: otp,
-      otpExpiresAt: expires,
-    });
-    await user.save();
+    const { data: newUser, error } = await supabase
+      .from("users")
+      .insert({
+        username,
+        email,
+        password_hash: passwordHash,
+        otp_code: otp,
+        otp_expires_at: expires.toISOString(),
+        is_verified: false,
+      })
+      .select("id")
+      .single();
 
-    await transporter.sendMail({
-      from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
-      to: email,
-      subject: "Your verification code",
-      text: `Your verification code is ${otp}. It will expire in 5 minutes.`,
-    });
+    if (error) throw error;
 
-    res.status(201).json({ message: "OTP sent", userId: user._id });
+    // Log OTP in terminal as dev fallback
+    console.log(`\n=========================================`);
+    console.log(`🔑 OTP for ${email} : ${otp}`);
+    console.log(`=========================================\n`);
+
+    // Send OTP email
+    try {
+      await transporter.sendMail({
+        from: `"Aura TaskFlow" <${process.env.MAIL_USER}>`,
+        to: email,
+        subject: "Your verification code — Aura TaskFlow",
+        text: `Your verification code is ${otp}. It will expire in 5 minutes.`,
+      });
+    } catch (mailErr) {
+      console.warn("⚠️ Email send failed:", mailErr.message);
+    }
+
+    res.status(201).json({ message: "OTP sent", userId: newUser.id, devOtp: otp });
   } catch (err) {
+    console.error("Register Error:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
+// POST /api/verify-email
 app.post("/api/verify-email", async (req, res) => {
   try {
     const { userId, otp } = req.body;
-    const user = await User.findById(userId);
-    if (!user || user.otpCode !== otp || user.otpExpiresAt < new Date()) {
+    if (!userId || !otp) return res.status(400).json({ message: "User ID and OTP are required" });
+
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error || !user) return res.status(400).json({ message: "User not found" });
+    if (user.otp_code !== otp || new Date(user.otp_expires_at) < new Date()) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
-    user.isVerified = true;
-    user.otpCode = null;
-    await user.save();
+
+    await supabase
+      .from("users")
+      .update({ is_verified: true, otp_code: null })
+      .eq("id", userId);
+
     res.json({ message: "Email verified successfully" });
   } catch (err) {
+    console.error("Verify OTP Error:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
+// POST /api/resend-otp
 app.post("/api/resend-otp", async (req, res) => {
   try {
     const { userId } = req.body;
-    const user = await User.findById(userId);
-    if (!user) return res.status(400).json({ message: "User not found" });
-
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otpCode = otp;
-    user.otpExpiresAt = new Date(Date.now() + 300000);
-    await user.save();
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    await transporter.sendMail({
-      from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
-      to: user.email,
-      subject: "Your verification code",
-      text: `Your new verification code is ${otp}.`,
-    });
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("email")
+      .eq("id", userId)
+      .single();
 
-    res.json({ message: "OTP resent" });
+    if (error || !user) return res.status(400).json({ message: "User not found" });
+
+    await supabase
+      .from("users")
+      .update({ otp_code: otp, otp_expires_at: expires.toISOString() })
+      .eq("id", userId);
+
+    console.log(`\n=========================================`);
+    console.log(`🔑 Resent OTP for ${user.email} : ${otp}`);
+    console.log(`=========================================\n`);
+
+    try {
+      await transporter.sendMail({
+        from: `"Aura TaskFlow" <${process.env.MAIL_USER}>`,
+        to: user.email,
+        subject: "Your new verification code — Aura TaskFlow",
+        text: `Your new verification code is ${otp}. It will expire in 5 minutes.`,
+      });
+    } catch (mailErr) {
+      console.warn("⚠️ Email send failed:", mailErr.message);
+    }
+
+    res.json({ message: "OTP resent successfully", devOtp: otp });
   } catch (err) {
+    console.error("Resend OTP Error:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
+// POST /api/login
 app.post("/api/login", async (req, res) => {
   try {
     const { identifier, password } = req.body;
-    const user = await User.findOne({
-      $or: [{ username: identifier }, { email: identifier }],
-    });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .or(`username.eq.${identifier},email.eq.${identifier}`)
+      .limit(1);
+
+    if (error || !data || data.length === 0) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    if (!user.isVerified) {
-      return res.status(403).json({ message: "Verify email first" });
+
+    const user = data[0];
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+
+    if (!user.is_verified) {
+      return res.status(403).json({ message: "Please verify your email address first" });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.json({ token, user: { username: user.username } });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token, user: { id: user.id, username: user.username } });
   } catch (err) {
+    console.error("Login Error:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
-// Task routes
+// ==============================================================================
+// TASK ROUTES
+// ==============================================================================
+
+// GET /api/tasks
 app.get("/api/tasks", authMiddleware, async (req, res) => {
   try {
-    const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 });
-    res.json(tasks);
+    const { data: tasks, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", req.userId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.json(tasks.map(normalizeTask));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
+// POST /api/tasks
 app.post("/api/tasks", authMiddleware, async (req, res) => {
   try {
-    const task = new Task({
-      userId: req.userId,
-      title: req.body.title,
-      deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
-    });
-    await task.save();
-    res.status(201).json(task);
+    const { title, deadline } = req.body;
+    if (!title) return res.status(400).json({ message: "Task title is required" });
+
+    const { data: task, error } = await supabase
+      .from("tasks")
+      .insert({
+        user_id: req.userId,
+        title: title.trim(),
+        deadline: deadline ? new Date(deadline).toISOString() : null,
+        completed: false,
+        notified: false,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(normalizeTask(task));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
+// PUT /api/tasks/:id
 app.put("/api/tasks/:id", authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      req.body,
-      { new: true }
-    );
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    res.json(task);
+    const { title, completed, deadline } = req.body;
+    const update = {};
+    if (title !== undefined) update.title = title;
+    if (completed !== undefined) update.completed = completed;
+    if (deadline !== undefined) update.deadline = deadline ? new Date(deadline) : null;
+
+    const { data: task, error } = await supabase
+      .from("tasks")
+      .update(update)
+      .eq("id", req.params.id)
+      .eq("user_id", req.userId)
+      .select("*")
+      .single();
+
+    if (error || !task) return res.status(404).json({ message: "Task not found" });
+    res.json(normalizeTask(task));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
+// DELETE /api/tasks/:id
 app.delete("/api/tasks/:id", authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    res.json({ message: "Deleted" });
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", req.params.id)
+      .eq("user_id", req.userId);
+
+    if (error) throw error;
+    res.json({ message: "Task deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// === Due‑task email notification job ===
+// ==============================================================================
+// DEADLINE EMAIL NOTIFICATION JOB
+// ==============================================================================
 async function sendDueTaskEmails() {
   try {
     const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date(now);
-    endOfToday.setHours(23, 59, 59, 999);
+    const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now); endOfToday.setHours(23, 59, 59, 999);
 
-    const dueTasks = await Task.find({
-      completed: false,
-      deadline: { $gte: startOfToday, $lte: endOfToday },
-      notified: false,
-    }).populate("userId");
+    const { data: dueTasks, error } = await supabase
+      .from("tasks")
+      .select("*, users:user_id (email, username)")
+      .eq("completed", false)
+      .eq("notified", false)
+      .gte("deadline", startOfToday.toISOString())
+      .lte("deadline", endOfToday.toISOString());
 
-    for (const task of dueTasks) {
-      const user = task.userId;
-      if (!user || !user.email) continue;
+    if (error) throw error;
+
+    for (const task of dueTasks || []) {
+      const userEmail = task.users?.email;
+      if (!userEmail) continue;
 
       await transporter.sendMail({
-        from: `"DAILY TASKS Workspace" <${process.env.MAIL_USER}>`,
-        to: user.email,
-        subject: `Task due: ${task.title}`,
-        text: `Your task "${task.title}" is due today. Please check your DAILY TASKS Workspace.`,
+        from: `"Aura TaskFlow" <${process.env.MAIL_USER}>`,
+        to: userEmail,
+        subject: `Task Due Today: "${task.title}"`,
+        text: `Hi ${task.users.username},\n\nYour task "${task.title}" is due today!\n\nBest,\nAura TaskFlow`,
       });
 
-      task.notified = true;
-      await task.save();
+      await supabase.from("tasks").update({ notified: true }).eq("id", task.id);
     }
+
+    console.log(`✅ Due-task job: checked ${(dueTasks || []).length} tasks`);
   } catch (err) {
-    console.error("❌ Error in due‑task email job:", err.message);
+    console.error("❌ Due-task job error:", err.message);
   }
 }
 
-// Endpoint for Vercel Cron / manual trigger
+// Manual trigger endpoint (used by Vercel Cron)
 app.get("/api/run-due-task-job", async (req, res) => {
-
   try {
     await sendDueTaskEmails();
-    res.json({ message: "Due-task job executed" });
+    res.json({ message: "Deadline notification job completed." });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Optional: run every 15 minutes ONLY in local dev
-if (process.env.NODE_ENV !== "production") {
-  setInterval(sendDueTaskEmails, 15 * 60 * 1000);
-}
-
-// For local dev + Vercel
+// Start Server
 const PORT = process.env.PORT || 5000;
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  app.listen(PORT, () => console.log(`🚀 Aura TaskFlow running at http://localhost:${PORT}`));
 }
 module.exports = app;
