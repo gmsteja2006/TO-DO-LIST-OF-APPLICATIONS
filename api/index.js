@@ -106,10 +106,11 @@ app.post("/api/register", async (req, res) => {
 
     if (error) throw error;
 
-    // Log OTP in terminal as dev fallback
-    console.log(`\n=========================================`);
-    console.log(`🔑 OTP for ${email} : ${otp}`);
-    console.log(`=========================================\n`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`\n=========================================`);
+      console.log(`OTP for ${email}: ${otp}`);
+      console.log(`=========================================\n`);
+    }
 
     // Send OTP email
     try {
@@ -123,7 +124,11 @@ app.post("/api/register", async (req, res) => {
       console.warn("⚠️ Email send failed:", mailErr.message);
     }
 
-    res.status(201).json({ message: "OTP sent", userId: newUser.id, devOtp: otp });
+    res.status(201).json({
+      message: "OTP sent",
+      userId: newUser.id,
+      ...(process.env.NODE_ENV !== "production" && { devOtp: otp }),
+    });
   } catch (err) {
     console.error("Register Error:", err.message);
     res.status(500).json({ message: err.message });
@@ -179,9 +184,11 @@ app.post("/api/resend-otp", async (req, res) => {
       .update({ otp_code: otp, otp_expires_at: expires.toISOString() })
       .eq("id", userId);
 
-    console.log(`\n=========================================`);
-    console.log(`🔑 Resent OTP for ${user.email} : ${otp}`);
-    console.log(`=========================================\n`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`\n=========================================`);
+      console.log(`Resent OTP for ${user.email}: ${otp}`);
+      console.log(`=========================================\n`);
+    }
 
     try {
       await transporter.sendMail({
@@ -194,7 +201,10 @@ app.post("/api/resend-otp", async (req, res) => {
       console.warn("⚠️ Email send failed:", mailErr.message);
     }
 
-    res.json({ message: "OTP resent successfully", devOtp: otp });
+    res.json({
+      message: "OTP resent successfully",
+      ...(process.env.NODE_ENV !== "production" && { devOtp: otp }),
+    });
   } catch (err) {
     console.error("Resend OTP Error:", err.message);
     res.status(500).json({ message: err.message });

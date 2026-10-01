@@ -267,9 +267,7 @@ async function handleRegister(e) {
 
     state.pendingUserId = res.userId;
     document.getElementById('otpTargetEmail').textContent = email;
-    if (res.devOtp) {
-      document.getElementById('otpCodeInput').value = res.devOtp;
-    }
+    document.getElementById('otpCodeInput').value = '';
     switchAuthTab('otp');
     setFeedback(DOM.otpFeedback, 'Verification code ready. Enter below to activate your account.', 'success');
     showToast('Verification code ready.', 'info');
