@@ -18,6 +18,14 @@ if (!supabase) {
   console.error("❌ Supabase client failed to initialize. Check SUPABASE_URL and SUPABASE_KEY in environment variables");
 }
 
+// Guard: reject API calls if Supabase is not available
+app.use("/api", (req, res, next) => {
+  if (!supabase) {
+    return res.status(503).json({ message: "Database not configured. Add SUPABASE_URL and SUPABASE_KEY in Vercel environment variables." });
+  }
+  next();
+});
+
 console.log("🚀 Database: Supabase PostgreSQL");
 
 // Mailer
