@@ -14,7 +14,7 @@
   "crons": [
     {
       "path": "/api/run-due-task-job",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
